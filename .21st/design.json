@@ -1,0 +1,49 @@
+{
+  "name": "RedVecina",
+  "version": "1.0.0",
+  "selectedDirection": {
+    "id": "dir-1-pill-capsule",
+    "name": "Cápsula Minimalista Hiperlocal (Pill & Capsule Focus)",
+    "status": "adopted",
+    "adoptedAt": "2026-11-07T15:00:00-05:00",
+    "notes": "Elegido por el usuario para unificar toda la plataforma con la estética limpia en cápsulas, selector de distancia 200m/500m/1km/Todo y filtros en pastillas."
+  },
+  "designSystem": {
+    "framework": "TailwindCSS + shadcn/ui",
+    "themeMode": "light-default",
+    "tokens": {
+      "background": "#ffffff",
+      "foreground": "#0e1216",
+      "surfaceElevated": "#ffffff",
+      "surfaceCard": "#f8fafc",
+      "primary": "#014069",
+      "primaryForeground": "#ffffff",
+      "border": "#e2e8f0",
+      "mutedForeground": "#4a5157",
+      "emergency": "#c9000c",
+      "success": "#21763c",
+      "radius": "1rem"
+    },
+    "typography": {
+      "headings": "font-black tracking-tight",
+      "body": "system-ui, sans-serif"
+    },
+    "accessibility": {
+      "targetMinSize": "48px",
+      "contrastRatio": "WCAG AAA",
+      "touchAction": "manipulation"
+    }
+  },
+  "references21st": [
+    {
+      "component": "sean0205/category-search-input",
+      "id": 29788,
+      "usage": "Buscador en cápsula con dictado por voz y botón de limpieza"
+    },
+    {
+      "component": "serafimcloud/filter-badge",
+      "id": 519,
+      "usage": "Etiquetas de estado tipo píldora (rounded-full) y selector de distancia"
+    }
+  ]
+}

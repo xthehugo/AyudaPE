@@ -1,0 +1,48 @@
+/* RedVecina — Civic & Humanitarian Light Design System */
+/* Compatible with 21st.dev and shadcn/ui */
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 210 24% 7%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 24% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 24% 7%;
+  --primary: 204 98% 21%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 204 60% 95%;
+  --accent-foreground: 204 98% 21%;
+  --destructive: 356 100% 39%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 204 98% 21%;
+  --radius: 1rem;
+}
+
+.dark {
+  --background: 204 26% 5%;
+  --foreground: 0 0% 98%;
+  --card: 204 22% 8%;
+  --card-foreground: 0 0% 98%;
+  --popover: 204 22% 8%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 204 80% 65%;
+  --primary-foreground: 204 26% 5%;
+  --secondary: 204 20% 14%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 204 20% 14%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 204 25% 18%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 356 100% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 204 20% 18%;
+  --input: 204 20% 18%;
+  --ring: 204 80% 65%;
+  --radius: 1rem;
+}

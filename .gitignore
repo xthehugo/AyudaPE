@@ -1,0 +1,37 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Production build artifacts
+/.next/
+/out/
+/build
+dist/
+
+# Debug and test logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+ts_errors.log
+
+# Environment variables & secrets
+.env*
+!.env.example
+
+# Vercel
+.vercel
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts
+
+# Large media files (videos)
+*.mp4
+*.mov
+*.avi
+
+# OS metadata
+.DS_Store
+Thumbs.db

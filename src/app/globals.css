@@ -1,0 +1,380 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Tokens de Diseño Globales Centralizados - Tema Claro (WCAG AA >= 4.5:1) */
+  --bg-app: #F4F5F7;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-subtle: #EEF1F5;
+  --text-main: #0B1E3F;        /* Contraste > 13:1 */
+  --text-secondary: #374151;   /* Slate 700 - Contraste > 9.5:1 */
+  --text-muted: #4B5563;       /* Slate 600 - Contraste > 6.8:1 */
+  --border-main: #94A3B8;      /* Slate 400 - Contraste >= 3:1 para bordes y controles */
+  --border-focus: #1D4ED8;
+
+  /* Estados interactivos centralizados */
+  --state-active-bg: #0F2A56;
+  --state-active-fg: #FFFFFF;
+  --state-disabled-bg: #E2E8F0;
+  --state-disabled-fg: #475569;
+  --state-error-bg: #FEE2E2;
+  --state-error-fg: #991B1B;
+  --state-error-border: #DC2626;
+
+  /* Colores de Acento y Semántica (Todos >= 4.5:1 sobre sus fondos) */
+  --accent-primary: #0F2A56;
+  --accent-primary-hover: #0B1E3F;
+  --accent-primary-text: #FFFFFF;
+  --accent-highlight: #B45309;
+  --color-success: #065F46;
+  --color-success-bg: #D1FAE5;
+  --color-danger: #991B1B;
+  --color-danger-bg: #FEE2E2;
+  --color-warning: #78350F;
+  --color-warning-bg: #FEF3C7;
+  --color-info: #1E40AF;
+  --color-info-bg: #DBEAFE;
+  --color-sync: #4C1D95;
+  --color-sync-bg: #EDE9FE;
+
+  /* Compatibilidad con variables legacy */
+  --navy: var(--accent-primary);
+  --navy-ink: var(--text-main);
+  --navy-soft: var(--color-info-bg);
+  --secondary-text: var(--text-secondary);
+  --sos-red: #B91C1C;
+  --call-105-bg: var(--color-danger-bg);
+  --call-105-fg: var(--color-danger);
+  --success-green: var(--color-success);
+  --success-bg: var(--color-success-bg);
+  --urgency-amber-bg: var(--color-warning-bg);
+  --urgency-amber-fg: var(--color-warning);
+  --publish-accent: var(--accent-highlight);
+  --map-blue: var(--color-info);
+  --sync-bg: var(--color-sync-bg);
+  --sync-primary: var(--color-sync);
+
+  /* Paleta de Superficies Semánticas */
+  --background: var(--bg-app);
+  --foreground: var(--text-main);
+  --surface-elevated: var(--bg-surface-elevated);
+  --surface-card: var(--bg-surface);
+  --muted-foreground: var(--text-secondary);
+  --border-color: var(--border-main);
+  --accent-surface: var(--color-info-bg);
+  --accent-foreground: var(--accent-primary);
+  --cta-primary-bg: var(--accent-primary);
+  --cta-primary-fg: var(--accent-primary-text);
+  --focus-ring: var(--border-focus);
+  --emergency: #B91C1C;
+  --emergency-foreground: #FFFFFF;
+  --success: var(--color-success);
+  --success-foreground: #FFFFFF;
+  --warning: var(--color-warning);
+  --selection-bg: var(--color-info-bg);
+  --selection-fg: var(--accent-primary);
+}
+
+/* Modo Nocturno (Dark Theme) - Cumplimiento estricto WCAG AA (>= 4.5:1 texto, >= 3:1 iconos/bordes) */
+html.dark {
+  --bg-app: #0F172A;           /* Slate 900 */
+  --bg-surface: #1E293B;       /* Slate 800 */
+  --bg-surface-elevated: #283548;
+  --bg-surface-subtle: #0F172A;
+  --text-main: #F8FAFC;        /* Slate 50 (> 14:1) */
+  --text-secondary: #E2E8F0;   /* Slate 200 (> 10:1) */
+  --text-muted: #CBD5E1;       /* Slate 300 (> 8:1) */
+  --border-main: #64748B;      /* Slate 500 (>= 3.2:1 sobre #1E293B) */
+  --border-focus: #60A5FA;
+
+  --state-active-bg: #1D4ED8;
+  --state-active-fg: #FFFFFF;
+  --state-disabled-bg: #334155;
+  --state-disabled-fg: #CBD5E1;
+  --state-error-bg: #450A0A;
+  --state-error-fg: #FCA5A5;
+  --state-error-border: #F87171;
+
+  --accent-primary: #60A5FA;
+  --accent-primary-hover: #3B82F6;
+  --accent-primary-text: #0F172A;
+  --accent-highlight: #FDBA74;
+  --color-success: #6EE7B7;    /* > 7.5:1 sobre #064E3B */
+  --color-success-bg: #064E3B;
+  --color-danger: #FCA5A5;     /* > 8.2:1 sobre #450A0A */
+  --color-danger-bg: #450A0A;
+  --color-warning: #FDE68A;    /* > 9.5:1 sobre #451A03 */
+  --color-warning-bg: #451A03;
+  --color-info: #93C5FD;       /* > 6.8:1 sobre #1E3A8A */
+  --color-info-bg: #1E3A8A;
+  --color-sync: #DDD6FE;       /* > 9.0:1 sobre #2E1065 */
+  --color-sync-bg: #2E1065;
+
+  --background: var(--bg-app);
+  --foreground: var(--text-main);
+  --surface-elevated: var(--bg-surface-elevated);
+  --surface-card: var(--bg-surface);
+  --muted-foreground: var(--text-secondary);
+  --border-color: var(--border-main);
+  --accent-surface: #1E293B;
+  --accent-foreground: #BFDBFE;
+  --cta-primary-bg: #1D4ED8;   /* Contraste 6.7:1 con blanco #FFFFFF */
+  --cta-primary-fg: #FFFFFF;
+  --focus-ring: #60A5FA;
+  --navy: #BFDBFE;
+  --navy-ink: var(--text-main);
+  --navy-soft: #1E293B;
+  --secondary-text: var(--text-secondary);
+}
+
+html.dark body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Modo Emergencia / Alerta - Alto Contraste Táctico WCAG AA/AAA */
+html.emergency-mode {
+  --bg-app: #141A24;           /* Azul pizarra táctico profundo */
+  --bg-surface: #1E2636;       /* Superficie táctica de tarjetas */
+  --bg-surface-elevated: #283246;
+  --bg-surface-subtle: #141A24;
+  --text-main: #FFFFFF;        /* Contraste > 14:1 */
+  --text-secondary: #E2E8F0;   /* Contraste > 10.5:1 */
+  --text-muted: #CBD5E1;       /* Contraste > 8.2:1 */
+  --border-main: #FB7185;      /* Rose 400 - Contraste > 4.2:1 (>= 3:1 requerido para bordes) */
+  --border-focus: #FDE047;
+
+  --state-active-bg: #BE123C;
+  --state-active-fg: #FFFFFF;
+  --state-disabled-bg: #334155;
+  --state-disabled-fg: #CBD5E1;
+  --state-error-bg: #4C0519;
+  --state-error-fg: #FECDD3;
+  --state-error-border: #FB7185;
+
+  --accent-primary: #FB7185;
+  --accent-primary-hover: #F43F5E;
+  --accent-primary-text: #FFFFFF;
+  --accent-highlight: #FDBA74;
+  --color-success: #6EE7B7;    /* > 7.5:1 sobre #064E3B */
+  --color-success-bg: #064E3B;
+  --color-danger: #FECDD3;     /* > 9.8:1 sobre #4C0519 */
+  --color-danger-bg: #4C0519;
+  --color-warning: #FDE68A;    /* > 9.5:1 sobre #451A03 */
+  --color-warning-bg: #451A03;
+  --color-info: #BAE6FD;       /* > 8.5:1 sobre #0C4A6E */
+  --color-info-bg: #0C4A6E;
+  --color-sync: #E9D5FF;       /* > 9.2:1 sobre #3B0764 */
+  --color-sync-bg: #3B0764;
+
+  --background: var(--bg-app);
+  --foreground: var(--text-main);
+  --surface-elevated: var(--bg-surface-elevated);
+  --surface-card: var(--bg-surface);
+  --muted-foreground: var(--text-secondary);
+  --border-color: var(--border-main);
+  --accent-surface: #4C0519;
+  --accent-foreground: #FFE4E6;
+  --cta-primary-bg: #BE123C;   /* Contraste > 6.4:1 con texto #FFFFFF */
+  --cta-primary-fg: #FFFFFF;
+  --focus-ring: #FDE047;
+  --selection-bg: #881337;
+  --selection-fg: #FFFFFF;
+  --navy: #FFFFFF;
+  --navy-ink: #FFFFFF;
+  --navy-soft: #283246;
+  --secondary-text: var(--text-secondary);
+}
+
+/* Reglas centralizadas para garantizar contraste WCAG AA en tarjetas, formularios, textos e íconos en Modo Nocturno y Modo Emergencia */
+html.dark .bg-white,
+html.emergency-mode .bg-white {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-main) !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/90,
+html.dark .bg-\[\#F4F5F7\],
+html.emergency-mode .bg-slate-50,
+html.emergency-mode .bg-slate-100,
+html.emergency-mode .bg-slate-100\/90,
+html.emergency-mode .bg-\[\#F4F5F7\] {
+  background-color: var(--bg-surface-subtle) !important;
+  color: var(--text-main) !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-\[\#0F172A\],
+html.dark .text-\[\#0B1E3F\],
+html.dark .text-\[\#1B1D21\],
+html.emergency-mode .text-slate-900,
+html.emergency-mode .text-slate-800,
+html.emergency-mode .text-slate-700,
+html.emergency-mode .text-\[\#0F172A\],
+html.emergency-mode .text-\[\#0B1E3F\],
+html.emergency-mode .text-\[\#1B1D21\] {
+  color: var(--text-main) !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-\[\#334155\],
+html.dark .text-\[\#5B6068\],
+html.emergency-mode .text-slate-600,
+html.emergency-mode .text-slate-500,
+html.emergency-mode .text-slate-400,
+html.emergency-mode .text-\[\#334155\],
+html.emergency-mode .text-\[\#5B6068\] {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.emergency-mode .border-slate-100,
+html.emergency-mode .border-slate-200,
+html.emergency-mode .border-slate-300 {
+  border-color: var(--border-main) !important;
+}
+
+html.dark input:not([type='checkbox']):not([type='radio']):not([type='search']),
+html.dark textarea,
+html.dark select,
+html.emergency-mode input:not([type='checkbox']):not([type='radio']):not([type='search']),
+html.emergency-mode textarea,
+html.emergency-mode select {
+  background-color: var(--bg-surface-subtle) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-main) !important;
+}
+
+html.dark input[type='search'],
+html.emergency-mode input[type='search'] {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+}
+
+html.dark button:disabled,
+html.emergency-mode button:disabled {
+  background-color: var(--state-disabled-bg) !important;
+  color: var(--state-disabled-fg) !important;
+  opacity: 0.75 !important;
+}
+
+html.font-scale-large {
+  font-size: 118.75%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background-color: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Sombras difusas y refinadas */
+.shadow-soft {
+  box-shadow: 0 4px 16px -2px rgba(30, 40, 60, 0.05);
+}
+
+.shadow-card-diffuse {
+  box-shadow: 0 14px 34px rgba(30, 40, 60, 0.08);
+}
+
+.shadow-card-elevated {
+  box-shadow: 0 14px 34px rgba(30, 40, 60, 0.08);
+}
+
+.shadow-floating-bar {
+  box-shadow: 0 -4px 20px -2px rgba(15, 42, 86, 0.07);
+}
+
+/* Garantía mínima ergonómica para controles interactivos (WCAG 2.2 Target Size >= 48px) */
+button,
+select,
+input[type='button'],
+input[type='submit'] {
+  min-height: 48px;
+  touch-action: manipulation;
+  transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+}
+
+button:active,
+input[type='button']:active,
+input[type='submit']:active {
+  transform: scale(0.97);
+}
+
+/* Gestos y Animaciones de Notificaciones Sonner (Swipe-to-dismiss) */
+[data-sonner-toaster] {
+  touch-action: pan-y;
+}
+
+[data-sonner-toast] {
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), height 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-sonner-toast]:active {
+  cursor: grabbing;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.9;
+}
