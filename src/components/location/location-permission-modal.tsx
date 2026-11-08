@@ -44,7 +44,7 @@ export function LocationPermissionModal(): React.ReactElement | null {
             localStorage.setItem(STORAGE_KEY_LOCATION_PROMPTED, 'true');
           } catch {}
           toast.success('¡Ubicación GPS detectada!', {
-            description: 'RedVecina ha calibrado los oficios y favores más cercanos a ti.',
+            description: 'AyudaPE ha calibrado los oficios y favores más cercanos a ti.',
           });
         },
         () => {
@@ -117,7 +117,7 @@ export function LocationPermissionModal(): React.ReactElement | null {
             id="location-modal-title"
             className="text-lg font-black tracking-tight text-slate-900 leading-snug"
           >
-            ¿Permitir tu ubicación en RedVecina?
+            ¿Permitir tu ubicación en AyudaPE?
           </h2>
           <p className="text-xs text-slate-600 leading-relaxed font-medium">
             Necesitamos conocer tu ubicación para calcular las distancias en metros a oficios

@@ -1,8 +1,8 @@
 {
-  "name": "redvecina",
+  "name": "ayudape",
   "version": "1.0.0",
   "private": true,
-  "description": "RedVecina — Plataforma Hiperlocal y Resiliente de Economía Vecinal y Respuesta Humanitaria",
+  "description": "AyudaPE — Plataforma Hiperlocal y Resiliente de Economía Vecinal y Respuesta Humanitaria",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

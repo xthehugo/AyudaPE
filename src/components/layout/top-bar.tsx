@@ -179,7 +179,7 @@ export function TopBar({
         {/* Jerarquía semántica accesible para lectores de pantalla y pruebas */}
         <div className="sr-only">
           <h1>Huancayo · El Tambo</h1>
-          <span>RedVecina · Resiliencia</span>
+          <span>AyudaPE · Resiliencia</span>
           <span>Jesús María · Sector 4</span>
           <span>A / A+</span>
         </div>
