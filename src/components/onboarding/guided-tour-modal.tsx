@@ -47,17 +47,26 @@ export function GuidedTourModal({
 }: GuidedTourModalProps): React.ReactElement | null {
   const [currentStep, setCurrentStep] = useState<number>(0);
 
+  const handleClose = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('ayudape_tour_seen', 'true');
+      } catch {}
+    }
+    onClose();
+  };
+
   // Soporte para cerrar con tecla Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -72,7 +81,7 @@ export function GuidedTourModal({
       aria-modal="true"
       aria-labelledby="onboarding-dialog-title"
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       {/* Contenedor con margen lateral >= 32px garantizado */}
       <div
@@ -128,7 +137,7 @@ export function GuidedTourModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="min-h-[48px] px-2 text-[14px] font-medium text-[#5B6275] hover:text-[#12285A] transition-colors flex items-center justify-center cursor-pointer"
               aria-label="Omitir guía rápida"
             >
@@ -171,7 +180,7 @@ export function GuidedTourModal({
               type="button"
               onClick={() => {
                 if (isLastStep) {
-                  onClose();
+                  handleClose();
                 } else {
                   setCurrentStep((prev) => Math.min(TOUR_STEPS.length - 1, prev + 1));
                 }
