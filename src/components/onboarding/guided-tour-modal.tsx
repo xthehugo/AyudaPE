@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 export interface GuidedTourModalProps {
   isOpen: boolean;
@@ -12,8 +13,8 @@ interface TourStep {
   step: number;
   title: string;
   body: string;
-  illustrationLabel?: string;
-  icon?: React.ReactNode;
+  position: 'center' | 'bottom' | 'top';
+  arrowPosition: 'top-left' | 'bottom-center' | 'top-right';
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -21,25 +22,33 @@ const TOUR_STEPS: TourStep[] = [
     step: 1,
     title: '1. Oficios Locales con Visto Bueno Vecinal',
     body: 'Encuentra gasfiteros, electricistas, enfermeras, menús caseros o clases de tus propios vecinos. Las recomendaciones de quienes viven a menos de 200 metros valen más.',
+    position: 'center',
+    arrowPosition: 'top-left',
   },
   {
     step: 2,
     title: '2. Muro Solidario y Publicación por Voz en 3 Clics',
     body: 'Pide prestadas unas muletas, coordina el pool escolar o comparte ayuda sin usar dinero. Con el botón central "+ Publicar" solo dictas con tu voz y la IA llena todo.',
+    position: 'bottom',
+    arrowPosition: 'bottom-center',
   },
   {
     step: 3,
     title: '3. Modo Emergencia SOS y Funciona Sin Internet',
     body: 'Ante un sismo o apagón, activa el Modo Emergencia SOS de alto contraste. Tus alertas se guardan en tu celular aunque caiga la red y tu dirección exacta queda protegida.',
+    position: 'top',
+    arrowPosition: 'top-right',
   },
 ];
 
 /**
  * Guía interactiva (Tour) de AyudaPE con la mascota Llama Andina:
+ * - Recorre la página dinámicamente (Centro/Oficios -> Abajo/Publicar -> Arriba/SOS).
  * - Tarjeta tooltip de 290px, radio 22px, padding 20px, sombra suave rgba(20,30,60,.18).
  * - Círculo de 66px con borde blanco de 3px para la llama a la izquierda del globo (object-position: 50% 30%).
  * - Fila superior con píldora de 22x7px (#12285A) y puntos de 7px (#D3D6DF) + botón "Omitir" (#5B6275).
  * - Botones táctiles accesibles >=48px (Atrás círculo #EEF0F5, Siguiente píldora #12285A / Listo con check).
+ * - Mensaje final guiando al usuario a volver a consultarla en Ajustes.
  */
 export function GuidedTourModal({
   isOpen,
@@ -47,12 +56,19 @@ export function GuidedTourModal({
 }: GuidedTourModalProps): React.ReactElement | null {
   const [currentStep, setCurrentStep] = useState<number>(0);
 
-  const handleClose = () => {
+  const handleClose = (completed = false) => {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('ayudape_tour_seen', 'true');
+        if (completed) {
+          localStorage.setItem('ayudape_tour_completed', 'true');
+        }
       } catch {}
     }
+    toast.info('💡 Guía de uso guardada', {
+      description: 'Puedes volver a verla en cualquier momento en Ajustes (en tu perfil arriba a la derecha > Guía de uso).',
+      duration: 5000,
+    });
     onClose();
   };
 
@@ -61,7 +77,7 @@ export function GuidedTourModal({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleClose();
+        handleClose(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -75,13 +91,21 @@ export function GuidedTourModal({
   const activeSlide = TOUR_STEPS[currentStep] ?? TOUR_STEPS[0];
   const isLastStep = currentStep === TOUR_STEPS.length - 1;
 
+  // Posicionamiento dinámico en la pantalla para explicar toda la página
+  const containerPositionClass =
+    activeSlide.position === 'top'
+      ? 'items-start justify-center pt-16 sm:pt-20 pb-4'
+      : activeSlide.position === 'bottom'
+      ? 'items-end justify-center pb-24 sm:pb-28 pt-4'
+      : 'items-center justify-center p-4';
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-dialog-title"
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4"
-      onClick={handleClose}
+      className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex px-4 transition-all duration-300 ${containerPositionClass}`}
+      onClick={() => handleClose(false)}
     >
       {/* Contenedor con margen lateral >= 32px garantizado */}
       <div
@@ -106,11 +130,23 @@ export function GuidedTourModal({
           className="relative w-[290px] max-w-[calc(100vw-88px)] rounded-[22px] bg-white p-[20px] shadow-[0_8px_24px_rgba(20,30,60,0.18)] space-y-3 z-0"
           style={{ fontFamily: 'Poppins, system-ui, -apple-system, sans-serif' }}
         >
-          {/* Flechita arriba apuntando al elemento */}
-          <div
-            className="absolute -top-[9px] left-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[9px] border-b-white drop-shadow-[0_-2px_2px_rgba(20,30,60,0.06)]"
-            aria-hidden="true"
-          />
+          {/* Flechita dinámica según la posición del elemento explicado */}
+          {activeSlide.arrowPosition === 'bottom-center' ? (
+            <div
+              className="absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[9px] border-t-white drop-shadow-[0_2px_2px_rgba(20,30,60,0.06)]"
+              aria-hidden="true"
+            />
+          ) : activeSlide.arrowPosition === 'top-right' ? (
+            <div
+              className="absolute -top-[9px] right-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[9px] border-b-white drop-shadow-[0_-2px_2px_rgba(20,30,60,0.06)]"
+              aria-hidden="true"
+            />
+          ) : (
+            <div
+              className="absolute -top-[9px] left-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[9px] border-b-white drop-shadow-[0_-2px_2px_rgba(20,30,60,0.06)]"
+              aria-hidden="true"
+            />
+          )}
 
           {/* Fila superior: Puntos de progreso a la izquierda y "Omitir" a la derecha */}
           <div className="flex items-center justify-between gap-2">
@@ -137,7 +173,7 @@ export function GuidedTourModal({
 
             <button
               type="button"
-              onClick={handleClose}
+              onClick={() => handleClose(false)}
               className="min-h-[48px] px-2 text-[14px] font-medium text-[#5B6275] hover:text-[#12285A] transition-colors flex items-center justify-center cursor-pointer"
               aria-label="Omitir guía rápida"
             >
@@ -146,7 +182,7 @@ export function GuidedTourModal({
           </div>
 
           {/* Texto del paso: 15px, peso 500, color #12285A, interlineado 1.5 */}
-          <div className="space-y-1 pt-0.5">
+          <div className="space-y-1.5 pt-0.5">
             <h3
               id="onboarding-dialog-title"
               className="text-[15px] font-bold text-[#12285A] leading-snug tracking-tight"
@@ -159,6 +195,16 @@ export function GuidedTourModal({
             >
               {activeSlide.body}
             </p>
+
+            {/* Aviso especial en el último paso: cómo encontrarlo en Ajustes */}
+            {isLastStep && (
+              <div className="rounded-xl bg-sky-50 p-2.5 border border-sky-200/80 text-[12px] text-[#12285A] font-semibold flex items-center gap-2 mt-2">
+                <Sparkles className="w-4 h-4 text-sky-600 shrink-0" />
+                <span>
+                  Tip: Puedes volver a ver esta guía cuando quieras en <strong>Ajustes</strong> (en tu perfil arriba a la derecha).
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Botones abajo a la derecha, con 10px de separación */}
@@ -180,7 +226,7 @@ export function GuidedTourModal({
               type="button"
               onClick={() => {
                 if (isLastStep) {
-                  handleClose();
+                  handleClose(true);
                 } else {
                   setCurrentStep((prev) => Math.min(TOUR_STEPS.length - 1, prev + 1));
                 }

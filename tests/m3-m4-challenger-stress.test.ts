@@ -211,20 +211,25 @@ describe('CHALLENGER M3-M4: Verificación Empírica y Pruebas de Estrés Adversa
               LocationProvider,
               null,
               React.createElement(
-                AppShell,
-                {
-                  activeTab: 'EXPLORAR',
-                  onSelectTab: () => {},
-                  onOpenQuickPublish: () => {},
-                },
-                React.createElement(HomePage)
+                'div',
+                null,
+                React.createElement(
+                  AppShell,
+                  {
+                    activeTab: 'EXPLORAR',
+                    onSelectTab: () => {},
+                    onOpenQuickPublish: () => {},
+                  },
+                  React.createElement(HomePage)
+                ),
+                React.createElement(PitchJuryPanel)
               )
             )
           )
         );
 
         expect(markup.length).toBeGreaterThan(500);
-        expect(markup).toContain('RedVecina');
+        expect(markup).toContain('AyudaPE');
         expect(markup).toContain('Pitch Jurado (180s)');
         expect(markup).toContain('03:00');
       }).not.toThrow();

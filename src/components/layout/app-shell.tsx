@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOperationalMode } from '@/context/mode-context';
 import { GuidedTourModal } from '@/components/onboarding/guided-tour-modal';
 import { BottomNavigation, type NavigationTabId } from './bottom-nav';
@@ -34,6 +34,7 @@ export function AppShell({
   children,
 }: AppShellProps): React.ReactElement {
   const { isOnboardingOpen, setIsOnboardingOpen } = useOperationalMode();
+  const [showFloatingGuide, setShowFloatingGuide] = useState<boolean>(false);
 
   useEffect(() => {
     const unsub = initializeMeshRelayListener();
@@ -41,6 +42,12 @@ export function AppShell({
       unsub();
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const completed = localStorage.getItem('ayudape_tour_completed') === 'true';
+    setShowFloatingGuide(!completed);
+  }, [isOnboardingOpen]);
 
   return (
     <MobileShell>
@@ -58,6 +65,26 @@ export function AppShell({
       </main>
 
       <FloatingNotificationBell />
+
+      {/* 3. Botón flotante inicial de la Llama Andina (solo se muestra mientras no se haya completado el tour) */}
+      {showFloatingGuide && !isOnboardingOpen && (
+        <button
+          type="button"
+          onClick={() => setIsOnboardingOpen(true)}
+          className="fixed bottom-[76px] left-4 z-40 min-h-[48px] h-12 px-3.5 rounded-full bg-white dark:bg-slate-900 text-[#12285A] dark:text-sky-200 border-2 border-[#12285A]/25 shadow-xl flex items-center gap-2 font-black text-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          aria-label="Abrir guía de la página con la llama andina"
+        >
+          <div className="w-7 h-7 rounded-full overflow-hidden border border-white shadow-xs shrink-0 bg-slate-100">
+            <img
+              src="/llama.jpeg"
+              alt="Llama Guía"
+              className="w-full h-full object-cover"
+              style={{ objectPosition: '50% 30%' }}
+            />
+          </div>
+          <span className="tracking-tight">¿Cómo funciona? Guía</span>
+        </button>
+      )}
 
       <BottomNavigation
         activeTab={activeTab}
