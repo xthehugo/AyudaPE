@@ -21,13 +21,13 @@ En **AyudaPE** respetamos de forma estricta la **Ley N° 29733 (Ley de Protecci�
 ```mermaid
 flowchart TD
     A["👤 Vecino abre AyudaPE"] --> B{"¿Necesita calcular distancias o mapa?"}
-    B -->|Sí| C["📍 Permiso de Ubicación GPS (Just-in-Time)"]
+    B -->|Sí| C["📍 Permiso de Ubicación GPS Just-in-Time"]
     C -->|Acepta| D["GPS Real Fused + Filtro 200m/500m/1km"]
-    C -->|Rechaza| E["Fallback amigable a Jr. Sucre (El Tambo)"]
+    C -->|Rechaza| E["Fallback amigable a Jr. Sucre El Tambo"]
     
     A --> F{"¿Desea publicar usando su voz?"}
-    F -->|Toca 'Dictar'| G["🎙️ Permiso de Micrófono (Solo durante el dictado)"]
-    G --> H["Transcripción Local / Whisper / Gemini en español peruano"]
+    F -->|Toca Dictar| G["🎙️ Permiso de Micrófono durante el dictado"]
+    G --> H["Transcripción Local o Gemini en español peruano"]
     
     A --> I{"¿Activa o recibe alertas SOS?"}
     I -->|En emergencia| J["🔔 Permiso de Notificaciones Barriales"]
@@ -67,10 +67,10 @@ Permite reactivar la economía local entre vecinos sin comisiones bancarias.
 
 ```mermaid
 flowchart LR
-    A["Directorio de Oficios"] --> B["Seleccionar Radio:\n200m · 500m · 1km"]
-    B --> C["Ver Fichas con 'Visto Bueno Vecinal'"]
-    C --> D["Tocar Ficha:\nLlamar directo o Ver Ruta a pie"]
-    D --> E["⭐ Dar Respaldo Vecinal\n(Puntaje de Confianza)"]
+    A["Directorio de Oficios"] --> B["Seleccionar Radio:<br/>200m · 500m · 1km"]
+    B --> C["Ver Fichas con Visto Bueno Vecinal"]
+    C --> D["Tocar Ficha:<br/>Llamar directo o Ver Ruta a pie"]
+    D --> E["⭐ Dar Respaldo Vecinal<br/>Puntaje de Confianza"]
 ```
 
 * **Filtro de 200 metros:** Da prioridad absoluta a los vecinos de tu misma cuadra.
@@ -110,12 +110,12 @@ flowchart TD
     B --> C["Difuminado de 50 metros (Ley 29733)"]
     C --> D{"¿Tiene internet el solicitante?"}
     D -->|Sí| E["Sube a la Nube (PostgreSQL/Supabase)"]
-    D -->|No (Sin señal)| F["Emite baliza a dispositivos vecinos cercanos"]
+    D -->|No - Sin señal| F["Emite baliza a dispositivos vecinos cercanos"]
     F --> G["📱 Dispositivo de Vecino Cercano capta la baliza"]
     G --> H["Vecino con señal actúa de REPETIDOR automático (Relay)"]
     H --> E
-    E --> I["👥 Vecinos tocan 'Voy en camino / Me comprometo'"]
-    I --> J["Solicitante confirma 'Auxilio Recibido'"]
+    E --> I["👥 Vecinos tocan Voy en camino"]
+    I --> J["Solicitante confirma Auxilio Recibido"]
     J --> K["✅ SOS pasa a Verde temporal y se archiva"]
 ```
 
