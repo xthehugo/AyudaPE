@@ -135,20 +135,4 @@ Para coordinar brigadas de defensa civil, simulacros o faenas comunales:
 
 ---
 
-## 📋 5. Guía Rápida para la Demostración ante el Jurado (Pitch de 3 Minutos)
-
-Para realizar una presentación impecable frente al comité evaluador:
-
-1. **Minuto 1 — El Problema y la Mascota Llama:**
-   * Muestra la pantalla inicial con la **Llama Andina** y explica: *"En Huancayo, ante un sismo o helada severa, los servicios de telefonía e internet colapsan, dejando aisladas a familias vulnerables."*
-2. **Minuto 2 — Demostración Offline y Oficios de Cercanía:**
-   * Activa el modo avión en el celular: demuestra cómo el catálogo de oficios, el filtro de 200m y el Muro Solidario siguen respondiendo al instante sin internet gracias a IndexedDB.
-   * Abre el Copiloto IA y toca una ficha: muestra el **Modal de Información de 1 toque** con llamada rápida y geolocalización.
-3. **Minuto 3 — El Botón SOS y la Malla Relay:**
-   * Lanza un SOS de prueba: resalta el **difuminado de 50 metros** cumpliendo la Ley N° 29733 de Datos Personales.
-   * Explica la **Malla Mesh Relay**: cómo el celular de un vecino con señal retransmite la alerta del vecino que no tiene señal.
-   * Concluye: *"AyudaPE salva vidas no solo cuando hay tecnología, sino especialmente cuando toda la tecnología falla."*
-
----
-
 *AyudaPE — Desarrollado con orgullo para Huancayo y las comunidades del Perú.*
