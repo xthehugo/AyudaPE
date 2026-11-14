@@ -39,6 +39,8 @@ import {
   getSolidarityStage,
   isOwnListing,
   isOwnPost,
+  getOrCreateDeviceId,
+  getPublicationAuthorDevice,
   syncOwnMutationsFromDexie,
   recordSosHelper,
   getSosHelpersCount,
@@ -197,7 +199,8 @@ export function NeighborhoodMap({
   refreshKey,
   focusCoords,
 }: NeighborhoodMapProps): React.ReactElement {
-  const { activeRole } = useOperationalMode();
+  const { mode, activeRole } = useOperationalMode();
+  const isEmergencyMode = mode === 'EMERGENCIA';
   const {
     currentSector,
     userCoords,
@@ -246,16 +249,34 @@ export function NeighborhoodMap({
       if (mapContainerRef.current) {
         const rect = mapContainerRef.current.getBoundingClientRect();
         if (rect.width > 50 && rect.height > 50) {
-          setContainerSize({ width: rect.width, height: rect.height });
+          setContainerSize((prev) => {
+            if (
+              Math.abs(prev.width - rect.width) < 1 &&
+              Math.abs(prev.height - rect.height) < 1
+            ) {
+              return prev;
+            }
+            return { width: Math.round(rect.width), height: Math.round(rect.height) };
+          });
         }
       }
     };
     updateSize();
     window.addEventListener('resize', updateSize);
-    const interval = setInterval(updateSize, 1500);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        updateSize();
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
       window.removeEventListener('resize', updateSize);
-      clearInterval(interval);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [isFullscreen]);
 
@@ -1627,51 +1648,77 @@ export function NeighborhoodMap({
           );
         })}
 
-        {/* Controles Táctiles Accesibles (Diseño Limpio en Tema Claro) */}
+        {/* Controles Táctiles Accesibles (Diseño Adaptativo Claro / Oscuro / Emergencia) */}
         <div className="absolute top-2.5 right-2.5 z-20 flex flex-col gap-2 pointer-events-auto items-end">
-          {/* Grupo de Zoom en contenedor blanco redondeado */}
-          <div className="w-12 bg-white/95 rounded-2xl shadow-md border border-slate-200/90 flex flex-col items-center overflow-hidden backdrop-blur-sm">
+          {/* Grupo de Zoom en contenedor adaptativo */}
+          <div
+            className={`w-12 rounded-2xl shadow-md border flex flex-col items-center overflow-hidden backdrop-blur-sm transition-colors ${
+              isEmergencyMode
+                ? 'bg-[#1E2636] border-[#FB7185]/70 text-[#FDE047]'
+                : 'bg-white/95 dark:bg-slate-900 border-slate-200/90 dark:border-slate-700 text-[#0F2A56] dark:text-sky-200'
+            }`}
+          >
             <button
               type="button"
               onClick={() => setZoom((z) => Math.min(Number((z + 0.25).toFixed(2)), 2.5))}
               aria-label="Aumentar zoom"
-              className="min-h-[48px] min-w-[48px] w-12 h-12 flex items-center justify-center text-slate-800 hover:bg-slate-100 active:scale-95 transition-all"
+              className={`min-h-[48px] min-w-[48px] w-12 h-12 flex items-center justify-center active:scale-95 transition-all ${
+                isEmergencyMode
+                  ? 'text-[#FDE047] hover:bg-[#283246]'
+                  : 'text-[#0F2A56] dark:text-sky-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
             >
-              <Plus className="w-5 h-5 stroke-[2.4]" />
+              <Plus className={`w-5 h-5 stroke-[2.8] ${isEmergencyMode ? 'text-[#FDE047]' : 'text-[#0F2A56] dark:text-sky-200'}`} />
             </button>
-            <div className="h-[1px] w-8 bg-slate-200/90" />
+            <div
+              className={`h-[1px] w-8 ${
+                isEmergencyMode ? 'bg-[#FB7185]/40' : 'bg-slate-200/90 dark:bg-slate-700'
+              }`}
+            />
             <button
               type="button"
               onClick={() => setZoom((z) => Math.max(Number((z - 0.25).toFixed(2)), 0.75))}
               aria-label="Disminuir zoom"
-              className="min-h-[48px] min-w-[48px] w-12 h-12 flex items-center justify-center text-slate-800 hover:bg-slate-100 active:scale-95 transition-all"
+              className={`min-h-[48px] min-w-[48px] w-12 h-12 flex items-center justify-center active:scale-95 transition-all ${
+                isEmergencyMode
+                  ? 'text-[#FDE047] hover:bg-[#283246]'
+                  : 'text-[#0F2A56] dark:text-sky-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
             >
-              <Minus className="w-5 h-5 stroke-[2.4]" />
+              <Minus className={`w-5 h-5 stroke-[2.8] ${isEmergencyMode ? 'text-[#FDE047]' : 'text-[#0F2A56] dark:text-sky-200'}`} />
             </button>
           </div>
 
-          {/* Botón Recentrar blanco con icono azul */}
+          {/* Botón Recentrar */}
           <button
             type="button"
             onClick={handleRecenter}
             aria-label="Recentrar en mi ubicación"
-            className="min-h-[48px] min-w-[48px] px-2.5 h-12 rounded-2xl bg-white/95 hover:bg-slate-50 text-blue-600 border border-slate-200/90 shadow-md flex items-center justify-center gap-1 font-bold text-xs active:scale-95 transition-all backdrop-blur-sm"
+            className={`min-h-[48px] min-w-[48px] px-2.5 h-12 rounded-2xl shadow-md border flex items-center justify-center gap-1 font-bold text-xs active:scale-95 transition-all backdrop-blur-sm ${
+              isEmergencyMode
+                ? 'bg-[#1E2636] border-[#FB7185]/70 text-[#FDE047] hover:bg-[#283246]'
+                : 'bg-white/95 dark:bg-slate-900 border-slate-200/90 dark:border-slate-700 text-[#0F2A56] dark:text-sky-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
           >
-            <LocateFixed className="w-4 h-4 stroke-[2.2]" />
+            <LocateFixed className={`w-4 h-4 stroke-[2.4] ${isEmergencyMode ? 'text-[#FDE047]' : 'text-[#0F2A56] dark:text-sky-300'}`} />
             <span className="hidden sm:inline">Recentrar</span>
           </button>
 
-          {/* Botón Pantalla Completa blanco */}
+          {/* Botón Pantalla Completa */}
           <button
             type="button"
             onClick={() => setIsFullscreen((prev) => !prev)}
             aria-label="Alternar pantalla completa"
-            className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-2xl bg-white/95 hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-md flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm"
+            className={`min-h-[48px] min-w-[48px] w-12 h-12 rounded-2xl shadow-md border flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${
+              isEmergencyMode
+                ? 'bg-[#1E2636] border-[#FB7185]/70 text-[#FDE047] hover:bg-[#283246]'
+                : 'bg-white/95 dark:bg-slate-900 border-slate-200/90 dark:border-slate-700 text-[#0F2A56] dark:text-sky-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
           >
             {isFullscreen ? (
-              <Minimize2 className="w-4 h-4 stroke-[2.2]" />
+              <Minimize2 className={`w-4 h-4 stroke-[2.4] ${isEmergencyMode ? 'text-[#FDE047]' : 'text-[#0F2A56] dark:text-sky-200'}`} />
             ) : (
-              <Maximize2 className="w-4 h-4 stroke-[2.2]" />
+              <Maximize2 className={`w-4 h-4 stroke-[2.4] ${isEmergencyMode ? 'text-[#FDE047]' : 'text-[#0F2A56] dark:text-sky-200'}`} />
             )}
           </button>
         </div>
@@ -2056,9 +2103,15 @@ export function NeighborhoodMap({
                         postItem.status === 'ATENDIDO',
                         postItem.status
                       );
-                      const ownPost = isOwnPost(postItem);
+                      const ownPost =
+                        isOwnPost(postItem) ||
+                        (Boolean(postItem.client_mutation_id) &&
+                          getPublicationAuthorDevice(postItem.client_mutation_id) ===
+                            getOrCreateDeviceId());
 
-                      const isSosPost = postItem.post_type === 'SOS_VULNERABLE';
+                      const isSosPost =
+                        postItem.post_type === 'SOS_VULNERABLE' ||
+                        postItem.operational_mode === 'EMERGENCIA';
 
                       if (currentStage === 'RECIBIDO' || postItem.status === 'ATENDIDO') {
                         return (
@@ -2077,7 +2130,7 @@ export function NeighborhoodMap({
                             <div className="flex items-center gap-2 flex-1 flex-wrap">
                               {count > 0 && (
                                 <span className="min-h-[48px] h-12 px-3 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs flex items-center gap-1 select-none">
-                                  <span>🏃 {count} en camino</span>
+                                  <span>{count} en camino</span>
                                 </span>
                               )}
                               <button
@@ -2088,12 +2141,16 @@ export function NeighborhoodMap({
                                     post: postItem,
                                     stage: 'RECIBIDO',
                                   });
+                                  if (typeof window !== 'undefined') {
+                                    localStorage.removeItem('redvecina_active_sos_alert');
+                                    window.dispatchEvent(new CustomEvent('redvecina_exit_emergency_mode'));
+                                  }
                                   toast.success('✅ ¡Auxilio recibido y emergencia atendida!');
                                 }}
                                 className="min-h-[48px] h-12 flex-1 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all ring-2 ring-emerald-300/70"
                               >
                                 <Check className="w-4 h-4" />
-                                <span>Marcar auxilio recibido</span>
+                                <span>Marcar auxilio recibido / A salvo</span>
                               </button>
                             </div>
                           );
@@ -2131,7 +2188,7 @@ export function NeighborhoodMap({
                                   stage: 'COMPROMETIDO',
                                   helperName: 'Vecino solidario',
                                 });
-                                toast.success('🏃 ¡Vas en camino a apoyar!', {
+                                toast.success('¡Vas en camino a apoyar!', {
                                   description: 'Se notificó al solicitante que un vecino va a su auxilio.',
                                 });
                               }}

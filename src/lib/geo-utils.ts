@@ -359,14 +359,18 @@ export async function fetchReverseGeocodeZone(
 
   const promise = (async (): Promise<string | null> => {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=17&accept-language=es`;
+      const isBrowser = typeof window !== 'undefined';
+      const url = isBrowser
+        ? `/api/v1/geocoder/reverse?lat=${lat}&lng=${lng}`
+        : `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=17&accept-language=es`;
       const res = await fetch(url, {
         headers: {
           Accept: 'application/json',
         },
       });
       if (!res.ok) return null;
-      const data = (await res.json()) as {
+      const raw = await res.json();
+      const data = (raw?.data?.place ?? raw) as {
         address?: {
           road?: string;
           pedestrian?: string;
@@ -377,6 +381,7 @@ export async function fetchReverseGeocodeZone(
           city?: string;
           municipality?: string;
         };
+        displayName?: string;
       };
       const addr = data?.address;
       if (!addr) return null;

@@ -68,11 +68,8 @@ export interface RealtimeEndorsementPayload {
   updatedAt: string;
 }
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://llvasghafojbdqcvkeek.supabase.co';
-const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'sb_publishable_ZET1ooKsP7K3lClG7lPsiA_GUQMaz_i';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Radio máximo (en metros) para considerar que una alerta SOS pertenece a la misma localidad/ciudad activa
 const LOCALITY_ALERT_RADIUS_METERS = 18000;
@@ -625,8 +622,21 @@ export function ensureRealtimeChannel(callbacks?: {
   if (!syncPollInterval && typeof window !== 'undefined') {
     void syncRealtimeInteractionsFromServer();
     syncPollInterval = setInterval(() => {
+      // Si el canal WebSocket ya está suscrito y transmitiendo en vivo, omitir polling repetitivo
+      if (isChannelSubscribed) return;
+      // Si la pestaña está en segundo plano o pantalla apagada, no consumir batería ni CPU
+      if (typeof document !== 'undefined' && document.hidden) return;
       void syncRealtimeInteractionsFromServer();
-    }, 4000);
+    }, 25000);
+
+    // Al reactivar la pestaña, sincronizar de forma reactiva si el canal WS no estuviera conectado
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !isChannelSubscribed) {
+          void syncRealtimeInteractionsFromServer();
+        }
+      });
+    }
   }
 
   return realtimeChannel;

@@ -80,7 +80,7 @@ export async function executeQuickPublishPersist(params: {
       listing_type: listingType,
       title: params.intent.title,
       description: params.intent.description,
-      contact_phone: params.contactPhone?.replace(/\D/g, '') || '987654321',
+      contact_phone: params.contactPhone || '987654321',
       latitude: params.latitude,
       longitude: params.longitude,
       available_for_emergencies:

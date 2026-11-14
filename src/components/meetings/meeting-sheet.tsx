@@ -93,12 +93,25 @@ export function MeetingSheet({
     ? (realGpsCoords?.lng ?? userCoords?.lng ?? -75.2155)
     : (userCoords?.lng ?? currentSector?.centerLng ?? -75.2155);
 
+  const wasOpenRef = useRef<boolean>(false);
+  const [hasCustomLocation, setHasCustomLocation] = useState<boolean>(false);
+
   useEffect(() => {
     if (isOpen) {
-      setPinCoords({ lat: effectiveUserLat, lng: effectiveUserLng });
-      setFormError(null);
+      if (!wasOpenRef.current) {
+        wasOpenRef.current = true;
+        setPinCoords({ lat: effectiveUserLat, lng: effectiveUserLng });
+        setUserOriginCoords({ lat: effectiveUserLat, lng: effectiveUserLng });
+        setHasCustomLocation(false);
+        setFormError(null);
+      } else if (!hasCustomLocation) {
+        setPinCoords({ lat: effectiveUserLat, lng: effectiveUserLng });
+      }
+    } else {
+      wasOpenRef.current = false;
+      setHasCustomLocation(false);
     }
-  }, [isOpen, effectiveUserLat, effectiveUserLng]);
+  }, [isOpen, effectiveUserLat, effectiveUserLng, hasCustomLocation]);
 
   // Tecla Escape para cerrar
   useEffect(() => {
@@ -149,6 +162,8 @@ export function MeetingSheet({
       display_name: place.display_name,
       is_residential: place.is_residential,
     });
+    setPinCoords({ lat: place.lat, lng: place.lng });
+    setHasCustomLocation(true);
     setFormError(null);
   };
 
@@ -161,6 +176,8 @@ export function MeetingSheet({
       display_name: place.reference,
       is_residential: false,
     });
+    setPinCoords({ lat: place.lat, lng: place.lng });
+    setHasCustomLocation(true);
     setReferenceNote(place.reference);
     setFormError(null);
   };
@@ -185,6 +202,7 @@ export function MeetingSheet({
     const nextLng = Number((pinCoords.lng + deltaLng).toFixed(6));
 
     setPinCoords({ lat: nextLat, lng: nextLng });
+    setHasCustomLocation(true);
 
     // Geocodificación inversa para obtener el nombre de la calle más cercana
     setIsReverseGeocoding(true);
@@ -219,6 +237,7 @@ export function MeetingSheet({
   // 5. Usar mi ubicación actual como punto de reunión (Respuesta Inmediata)
   const handleUseCurrentLocation = async () => {
     setIsReverseGeocoding(true);
+    setHasCustomLocation(false);
 
     // 1. Coordenadas inmediatas de alta disponibilidad
     const instantLat = realGpsCoords?.lat ?? userCoords?.lat ?? effectiveUserLat;
@@ -341,7 +360,7 @@ export function MeetingSheet({
     const trimmedMotive = motive.trim();
     if (trimmedMotive.length < 5 || trimmedMotive.length > 140) return false;
     if (URL_REGEX.test(trimmedMotive)) return false;
-    if (distanceToPlace > 2000) return false;
+    if (distanceToPlace > 15000) return false;
     return true;
   }, [selectedPlace, motive, distanceToPlace]);
 

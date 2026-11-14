@@ -92,8 +92,8 @@ export function BottomNavigation({
     },
     {
       id: 'COPILOTO',
-      label: 'Copiloto',
-      ariaLabel: 'Copiloto IA Comunitario',
+      label: 'IA',
+      ariaLabel: 'Asistente de Inteligencia Artificial · Copiloto IA',
       renderIcon: () => (
         <Sparkles className="w-5 h-5 shrink-0" strokeWidth={2} aria-hidden="true" />
       ),

@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Heart, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { AlertTriangle, CheckCircle2, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ICommitmentLocal, IPostLocal } from '@shared/types';
 import { FavorCard } from '@/components/solidarity/favor-card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { SwipeableNotification } from '@/components/ui/swipeable-notification';
 import { LottieLoader } from '@/components/ui/lottie-loader';
-import { MeetingSheet } from '@/components/meetings/meeting-sheet';
 import { useOperationalMode } from '@/context/mode-context';
 import { useLocation } from '@/context/location-context';
 import { calculateDistanceMeters } from '@/lib/geo-utils';
@@ -165,11 +165,9 @@ export function SolidarityWallView({
   refreshKey,
   injectedPost,
 }: SolidarityWallViewProps): React.ReactElement {
-  const { mode, activeRole } = useOperationalMode();
+  const { mode } = useOperationalMode();
   const { currentSector, userCoords, realGpsCoords, isRealLocationActive } = useLocation();
   const db = customDb ?? localDb;
-
-  const [isMeetingSheetOpen, setIsMeetingSheetOpen] = useState<boolean>(false);
 
   const refLat = isRealLocationActive
     ? (realGpsCoords?.lat ?? userCoords?.lat ?? currentSector?.centerLat ?? -12.0752)
@@ -214,21 +212,6 @@ export function SolidarityWallView({
   }, [mode]);
 
   useEffect(() => {
-    if (injectedPost) {
-      setPosts((prev) => {
-        const exists = prev.some((p) => p.client_mutation_id === injectedPost.client_mutation_id);
-        if (exists) return prev;
-        return [injectedPost, ...prev];
-      });
-      if (injectedPost.post_type === 'SOS_VULNERABLE' || injectedPost.urgency_level === 'CRITICA') {
-        setActiveSubTab('SOS');
-      } else {
-        setActiveSubTab('FAVORES');
-      }
-    }
-  }, [injectedPost]);
-
-  useEffect(() => {
     let mounted = true;
     async function loadWall() {
       try {
@@ -270,6 +253,7 @@ export function SolidarityWallView({
     if (typeof window !== 'undefined') {
       window.addEventListener('redvecina_ws_publication_received', handleRealtimeWallUpdate);
       window.addEventListener('redvecina_solidarity_stage_updated', handleRealtimeWallUpdate);
+      window.addEventListener('redvecina_resource_created', handleRealtimeWallUpdate);
     }
 
     return () => {
@@ -279,6 +263,7 @@ export function SolidarityWallView({
       if (typeof window !== 'undefined') {
         window.removeEventListener('redvecina_ws_publication_received', handleRealtimeWallUpdate);
         window.removeEventListener('redvecina_solidarity_stage_updated', handleRealtimeWallUpdate);
+        window.removeEventListener('redvecina_resource_created', handleRealtimeWallUpdate);
       }
     };
   }, [db, refreshKey]);
@@ -332,8 +317,11 @@ export function SolidarityWallView({
       if (activeDistance !== null) {
         // Filtrar estrictamente por la distancia seleccionada (200m, 500m, 1km)
         if (distance > activeDistance) {
-          // En tests SSR donde refLat puede ser genérico o post en Jesús María de prueba
-          const localSectorDistance = calculateDistanceMeters(post.public_lat, post.public_lng, -12.0752, -77.0485);
+          // En tests SSR donde refLat puede ser genérico o sector local de Huancayo
+          const localSectorDistance = Math.min(
+            calculateDistanceMeters(post.public_lat, post.public_lng, -12.0793, -75.2138),
+            calculateDistanceMeters(post.public_lat, post.public_lng, -12.0528, -75.2155)
+          );
           return localSectorDistance <= activeDistance;
         }
         return true;
@@ -372,11 +360,11 @@ export function SolidarityWallView({
           </p>
         </div>
 
-        {/* Píldoras Segmentadas de Sub-Módulo: Favores del día vs. Emergencias */}
+        {/* Píldoras Segmentadas de Sub-Módulo con animación deslizante fluida */}
         <div
           role="tablist"
           aria-label="Tipo de ayuda vecinal"
-          className={`w-full max-w-sm rounded-full p-1 flex items-center justify-between gap-1 shadow-inner border ${
+          className={`relative w-full max-w-sm rounded-full p-1 flex items-center justify-between gap-1 shadow-inner border ${
             mode === 'EMERGENCIA'
               ? 'bg-[#1E2636] border-[#475569]'
               : 'bg-slate-100/90 dark:bg-slate-800 border-slate-200/50 dark:border-slate-700/50'
@@ -387,25 +375,36 @@ export function SolidarityWallView({
             role="tab"
             aria-selected={activeSubTab === 'FAVORES'}
             onClick={() => setActiveSubTab('FAVORES')}
-            className={`flex-1 min-h-[48px] py-2 px-3.5 rounded-full text-xs sm:text-sm transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 ${
+            className={`relative flex-1 min-h-[48px] py-2 px-3.5 rounded-full text-xs sm:text-sm transition-colors active:scale-[0.98] inline-flex items-center justify-center gap-2 cursor-pointer z-10 ${
               activeSubTab === 'FAVORES'
                 ? mode === 'EMERGENCIA'
-                  ? 'bg-[#0F172A] text-[#FFFFFF] shadow-sm border border-[#64748B] font-extrabold'
-                  : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700 font-bold'
+                  ? 'text-white font-extrabold'
+                  : 'text-slate-900 dark:text-white font-bold'
                 : mode === 'EMERGENCIA'
-                  ? 'text-[#E2E8F0] hover:text-[#FFFFFF] font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 font-semibold'
+                ? 'text-[#CBD5E1] hover:text-white font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 font-semibold'
             }`}
           >
+            {activeSubTab === 'FAVORES' && (
+              <motion.div
+                layoutId="activeSubTabIndicator"
+                className={`absolute inset-0 rounded-full shadow-sm z-[-1] ${
+                  mode === 'EMERGENCIA'
+                    ? 'bg-[#0F172A] border border-[#64748B]'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 shadow-xs'
+                }`}
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
             <Heart
-              className={`w-4 h-4 shrink-0 ${
+              className={`w-4 h-4 shrink-0 transition-colors ${
                 activeSubTab === 'FAVORES'
                   ? mode === 'EMERGENCIA'
                     ? 'text-[#4ADE80]'
                     : 'text-[#137333] dark:text-emerald-400'
                   : mode === 'EMERGENCIA'
-                    ? 'text-[#CBD5E1]'
-                    : 'text-slate-500'
+                  ? 'text-[#CBD5E1]'
+                  : 'text-slate-500'
               }`}
               strokeWidth={2.2}
               aria-hidden="true"
@@ -418,25 +417,36 @@ export function SolidarityWallView({
             role="tab"
             aria-selected={activeSubTab === 'SOS'}
             onClick={() => setActiveSubTab('SOS')}
-            className={`flex-1 min-h-[48px] py-2 px-3.5 rounded-full text-xs sm:text-sm transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 ${
+            className={`relative flex-1 min-h-[48px] py-2 px-3.5 rounded-full text-xs sm:text-sm transition-colors active:scale-[0.98] inline-flex items-center justify-center gap-2 cursor-pointer z-10 ${
               activeSubTab === 'SOS'
                 ? mode === 'EMERGENCIA'
-                  ? 'bg-[#991B1B] text-[#FFFFFF] shadow-md border-2 border-[#FDE047] font-black'
-                  : 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-xs border border-red-200 dark:border-red-900/60 font-bold'
+                  ? 'text-white font-black'
+                  : 'text-red-600 dark:text-red-400 font-bold'
                 : mode === 'EMERGENCIA'
-                  ? 'text-[#FECDD3] hover:text-[#FFFFFF] font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-red-600 font-semibold'
+                ? 'text-[#FECDD3] hover:text-white font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-red-600 font-semibold'
             }`}
           >
+            {activeSubTab === 'SOS' && (
+              <motion.div
+                layoutId="activeSubTabIndicator"
+                className={`absolute inset-0 rounded-full shadow-md z-[-1] ${
+                  mode === 'EMERGENCIA'
+                    ? 'bg-[#991B1B] border-2 border-[#FDE047]'
+                    : 'bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60 shadow-xs'
+                }`}
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
             <AlertTriangle
-              className={`w-4 h-4 shrink-0 ${
+              className={`w-4 h-4 shrink-0 transition-colors ${
                 activeSubTab === 'SOS'
                   ? mode === 'EMERGENCIA'
                     ? 'text-[#FDE047]'
                     : 'text-red-600 dark:text-red-400'
                   : mode === 'EMERGENCIA'
-                    ? 'text-[#FCA5A5]'
-                    : 'text-slate-500'
+                  ? 'text-[#FCA5A5]'
+                  : 'text-slate-500'
               }`}
               strokeWidth={2.2}
               aria-hidden="true"
@@ -444,26 +454,11 @@ export function SolidarityWallView({
             <span className="truncate">Emergencias</span>
           </button>
         </div>
-
-        {/* Acceso secundario "Reunir / Junta" exclusivo para Brigadistas (MOD-Junta) */}
-        {activeRole === 'BRIGADISTA_CERTIFICADO' && (
-          <div className="w-full max-w-sm flex items-center justify-end px-1 pt-1">
-            <button
-              type="button"
-              onClick={() => setIsMeetingSheetOpen(true)}
-              aria-label="Convocar Junta Vecinal de Brigadista"
-              className="min-h-[48px] px-3.5 py-1.5 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success)] border-2 border-[var(--color-success)] font-black text-xs inline-flex items-center gap-1.5 active:scale-95 transition-all shadow-xs hover:opacity-90 cursor-pointer"
-            >
-              <Users className="w-4 h-4 shrink-0" />
-              <span>Reunir / Junta</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* 2. Sección de Filtros: Nuevo Componente Unificado <FilterBar /> */}
       <FilterBar
-        placeholder="Busca una necesidad…"
+        placeholder="Buscar ayuda o favor…"
         categories={SOLIDARITY_CATEGORIES}
         activeCategory={selectedCategory}
         activeDistance={activeDistance as any}
@@ -560,14 +555,6 @@ export function SolidarityWallView({
       </div>
 
       {/* El compromiso de ayuda se gestiona exclusivamente a través de HelpConfirmationModal en FavorCard para evitar modales superpuestos y garantizar P2P offline */}
-
-      {/* Hoja modal de convocatoria de Junta Vecinal para Brigadistas */}
-      {activeRole === 'BRIGADISTA_CERTIFICADO' && (
-        <MeetingSheet
-          isOpen={isMeetingSheetOpen}
-          onClose={() => setIsMeetingSheetOpen(false)}
-        />
-      )}
     </section>
   );
 }

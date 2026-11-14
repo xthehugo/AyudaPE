@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
   Clock,
@@ -70,19 +70,37 @@ export function FavorCard({
     return false;
   });
 
-  // Recurso principal o recurso de respaldo
-  const primaryResource =
-    resources.length > 0
-      ? resources[0]
-      : ({
-          id: post.id ?? 999,
-          client_mutation_id: `fallback-${post.client_mutation_id}`,
-          post_client_mutation_id: post.client_mutation_id,
-          item_name: 'Apoyo y coordinación comunitaria',
-          unit: 'vecinos',
-          quantity_needed: 1,
-          quantity_committed: 0,
-        } as ResourceProgressItem);
+  const [resourceVersion, setResourceVersion] = useState<number>(0);
+
+  // Recurso principal o recurso de respaldo (con fallback a caché local)
+  const primaryResource = useMemo<ResourceProgressItem>(() => {
+    if (resources && resources.length > 0) {
+      return resources[0];
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const rawCache = localStorage.getItem('redvecina_resources_cache');
+        if (rawCache) {
+          const parsed = JSON.parse(rawCache) as ResourceProgressItem[];
+          const match = parsed.find(
+            (r) =>
+              r.post_client_mutation_id === post.client_mutation_id ||
+              r.client_mutation_id === post.client_mutation_id
+          );
+          if (match) return match;
+        }
+      } catch {}
+    }
+    return {
+      id: post.id ?? 999,
+      client_mutation_id: `fallback-${post.client_mutation_id}`,
+      post_client_mutation_id: post.client_mutation_id,
+      item_name: 'Apoyo y coordinación comunitaria',
+      unit: 'vecinos',
+      quantity_needed: 1,
+      quantity_committed: 0,
+    };
+  }, [resources, post.client_mutation_id, post.id, resourceVersion]);
 
   const isResourceFullInitially =
     (primaryResource.quantity_committed >= primaryResource.quantity_needed &&
@@ -150,6 +168,10 @@ export function FavorCard({
       }
     };
 
+    const handleResourceCreated = () => {
+      setResourceVersion((v) => v + 1);
+    };
+
     let channel: BroadcastChannel | null = null;
     if (typeof window !== 'undefined') {
       window.addEventListener('redvecina_identity_updated', handleIdentityUpdate);
@@ -157,6 +179,7 @@ export function FavorCard({
       window.addEventListener('redvecina_solidarity_stage_updated', handleStageUpdate);
       window.addEventListener('redvecina_sos_helpers_updated', handleSosHelpersUpdate);
       window.addEventListener('redvecina_sos_resolved_updated', handleSosResolvedUpdate);
+      window.addEventListener('redvecina_resource_created', handleResourceCreated);
 
       if ('BroadcastChannel' in window) {
         channel = new BroadcastChannel('redvecina_solidarity_channel');
@@ -180,6 +203,7 @@ export function FavorCard({
         window.removeEventListener('redvecina_solidarity_stage_updated', handleStageUpdate);
         window.removeEventListener('redvecina_sos_helpers_updated', handleSosHelpersUpdate);
         window.removeEventListener('redvecina_sos_resolved_updated', handleSosResolvedUpdate);
+        window.removeEventListener('redvecina_resource_created', handleResourceCreated);
       }
       if (channel) {
         channel.close();
@@ -220,9 +244,18 @@ export function FavorCard({
   );
 
   useEffect(() => {
-    setApproxZone(
-      resolveApproximateZoneLabel(effectiveLat, effectiveLng, post.title, post.description)
+    const initialLabel = resolveApproximateZoneLabel(
+      effectiveLat,
+      effectiveLng,
+      post.title,
+      post.description
     );
+    setApproxZone(initialLabel);
+
+    // Solo consultar geocodificación externa si la zona calculada localmente es genérica
+    const isGenericCoords = initialLabel.includes('Lat ') || initialLabel === 'Huancayo · Sector Barrial';
+    if (!isGenericCoords) return;
+
     let active = true;
     void fetchReverseGeocodeZone(effectiveLat, effectiveLng).then((realStreet) => {
       if (active && realStreet) {
@@ -290,7 +323,7 @@ export function FavorCard({
       stage: 'COMPROMETIDO',
       helperName: 'Vecino solidario',
     });
-    toast.success('🏃 ¡Vas en camino a apoyar!', {
+    toast.success('¡Vas en camino a apoyar!', {
       description: 'Se notificó al solicitante que un vecino va a su auxilio.',
       duration: 5000,
     });
@@ -355,6 +388,7 @@ export function FavorCard({
 
   return (
     <motion.article
+      suppressHydrationWarning
       initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={
@@ -362,9 +396,11 @@ export function FavorCard({
           ? { duration: 0 }
           : { type: 'spring', stiffness: 400, damping: 30 }
       }
-      className={`rounded-[28px] text-[#0B1E3F] shadow-card-diffuse p-5 sm:p-6 space-y-4 transition-all duration-200 ${
+      className={`favor-card-article rounded-[28px] shadow-card-diffuse p-5 sm:p-6 space-y-4 transition-all duration-200 ${
         isVerifiedComplete
-          ? 'bg-[#F2F9F5] border-2 border-[#15795A]/30 opacity-90'
+          ? 'is-complete bg-[#F2F9F5] border-2 border-[#15795A]/30 opacity-90'
+          : isEmergency
+          ? 'is-emergency-active bg-white border-2 border-red-500/80 shadow-md'
           : 'bg-white border-0 hover:shadow-lg'
       }`}
     >
@@ -406,7 +442,7 @@ export function FavorCard({
 
           <span
             title={deviceVerified ? 'Vecino verificado con DNI' : 'En proceso de verificación'}
-            className="inline-flex items-center gap-1 text-[11px] text-[#5B6068] font-medium"
+            className="inline-flex items-center gap-1 text-[11px] font-medium"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[#15795A]" />
             <span className="text-[10px] font-semibold text-[#15795A]">Verificado</span>
@@ -418,14 +454,19 @@ export function FavorCard({
           onClick={() => toast.success('Reporte enviado a la moderación barrial.')}
           aria-label="Reportar publicación"
           title="Reportar publicación"
-          className="min-h-[48px] min-w-[48px] px-2 text-[#5B6068] hover:text-rose-600 flex items-center justify-center cursor-pointer rounded-full"
+          className="min-h-[48px] min-w-[48px] px-2 text-slate-500 hover:text-rose-600 flex items-center justify-center cursor-pointer rounded-full"
         >
           <Flag className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* 2. Título de la tarjeta */}
-      <h3 className="text-base sm:text-lg font-bold tracking-tight text-[#0B1E3F] leading-snug">
+      {/* 2. Título de la tarjeta (Alto contraste asegurado en todos los modos) */}
+      <h3
+        className={`favor-card-title text-base sm:text-lg font-black tracking-tight leading-snug ${
+          isEmergency && !isVerifiedComplete ? 'text-red-950' : 'text-slate-950'
+        }`}
+        style={{ color: isEmergency && !isVerifiedComplete ? '#7F1D1D' : '#0F172A' }}
+      >
         {post.title}
       </h3>
 
@@ -440,13 +481,19 @@ export function FavorCard({
         </div>
       )}
 
-      {/* 3. Descripción acotada */}
-      <p className="text-xs sm:text-sm text-[#5B6068] leading-relaxed line-clamp-2">
+      {/* 3. Descripción acotada (Alto contraste oscuro legible sobre fondo claro) */}
+      <p
+        className="favor-card-desc text-xs sm:text-sm font-semibold leading-relaxed line-clamp-2"
+        style={{ color: '#1E293B' }}
+      >
         {post.description}
       </p>
 
       {/* 4. Lugar aproximado */}
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-[#5B6068]">
+      <div
+        className="favor-card-location flex items-center gap-1.5 text-xs font-bold"
+        style={{ color: '#334155' }}
+      >
         <MapPin className="w-3.5 h-3.5 text-[#2F62D6] shrink-0" />
         <span className="truncate">{approxZone}</span>
       </div>
@@ -491,24 +538,53 @@ export function FavorCard({
                 </span>
                 <span className="text-[11px] font-black text-[#15795A] shrink-0 ml-2">
                   {effectiveCommitted}/{res.quantity_needed} ({pct}%)
+                  <span className="sr-only"> · {effectiveCommitted} de {res.quantity_needed} {res.unit ?? 'recursos'} cubiertos</span>
                 </span>
               </div>
 
-              {/* Barra lineal accesible */}
-              <div
-                role="progressbar"
-                aria-valuenow={effectiveCommitted}
-                aria-valuemin={0}
-                aria-valuemax={res.quantity_needed}
-                aria-label={`Progreso de ${res.item_name}: ${effectiveCommitted} de ${res.quantity_needed} (${pct}%)`}
-                data-testid={`resource-progress-${res.client_mutation_id}`}
-                className="w-full h-2 rounded-full bg-slate-200 overflow-hidden"
-              >
+              {/* Barra lineal y circular accesible */}
+              <div className="flex items-center gap-2">
+                <svg
+                  role="progressbar"
+                  aria-valuenow={effectiveCommitted}
+                  aria-valuemin={0}
+                  aria-valuemax={res.quantity_needed}
+                  aria-label={`Progreso de ${res.item_name}: ${effectiveCommitted} de ${res.quantity_needed} (${pct}%)`}
+                  className="w-5 h-5 shrink-0 -rotate-90"
+                  viewBox="0 0 36 36"
+                >
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="text-slate-200 dark:text-slate-700"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="#15795A"
+                    strokeWidth="3.5"
+                    strokeDasharray="88"
+                    strokeDashoffset={88 - (88 * pct) / 100}
+                    strokeLinecap="round"
+                  />
+                </svg>
                 <div
-                  style={{ width: `${pct}%` }}
-                  className="h-full rounded-full bg-[#15795A] transition-all duration-500 ease-out"
-                />
+                  data-testid={`resource-progress-${res.client_mutation_id}`}
+                  className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden"
+                >
+                  <div
+                    style={{ width: `${pct}%` }}
+                    className="h-full rounded-full bg-[#15795A] transition-all duration-500 ease-out"
+                  />
+                </div>
               </div>
+              <span className="sr-only">Meta: {res.quantity_needed} {res.unit ?? 'recursos'}</span>
             </>
           );
         })()}
@@ -587,7 +663,7 @@ export function FavorCard({
                   className="flex-1 min-h-[48px] h-12 px-4 rounded-full bg-red-600 hover:bg-red-700 active:scale-[0.97] text-white font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer animate-pulse"
                 >
                   <Heart className="w-5 h-5 text-white fill-white" />
-                  <span>🏃 Voy en camino / Puedo apoyar</span>
+                  <span>Voy en camino / Puedo apoyar</span>
                   {sosHelpersCount > 0 && (
                     <span className="bg-red-800 text-red-100 text-[10px] font-black px-2 py-0.5 rounded-full ml-1">
                       {sosHelpersCount} en camino

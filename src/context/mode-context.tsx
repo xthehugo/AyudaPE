@@ -104,14 +104,6 @@ export function ModeProvider({ children }: { children: React.ReactNode }): React
       ) {
         setActiveRoleState(savedRole);
       }
-
-      // Si el usuario es nuevo, abrir la Guía Interactiva con la Llama Andina
-      const tourSeen = window.localStorage.getItem('ayudape_tour_seen');
-      if (!tourSeen) {
-        setTimeout(() => {
-          setIsOnboardingOpen(true);
-        }, 650);
-      }
     } catch {
       // Ignorar si localStorage está bloqueado en navegación privada
     }

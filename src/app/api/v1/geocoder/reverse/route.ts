@@ -1,4 +1,4 @@
-import { jsonError, jsonOk } from '@/server/http/api-handler';
+import { jsonError } from '@/server/http/api-handler';
 import { defaultGeocoder } from '@/server/geocoder/nominatim-adapter';
 
 /**
@@ -23,7 +23,19 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     const place = await defaultGeocoder.reverse(lat, lng);
-    return jsonOk({ place, attribution: '© OpenStreetMap' });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: { place, attribution: '© OpenStreetMap' },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200',
+        },
+      }
+    );
   } catch (err) {
     return jsonError(
       500,

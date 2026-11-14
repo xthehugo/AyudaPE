@@ -226,9 +226,18 @@ export function ServiceCard({
   );
 
   useEffect(() => {
-    setApproxZone(
-      resolveApproximateZoneLabel(effectiveLat, effectiveLng, listing.title, listing.description)
+    const initialLabel = resolveApproximateZoneLabel(
+      effectiveLat,
+      effectiveLng,
+      listing.title,
+      listing.description
     );
+    setApproxZone(initialLabel);
+
+    // Solo consultar geocodificación externa si la zona calculada localmente es genérica
+    const isGenericCoords = initialLabel.includes('Lat ') || initialLabel === 'Huancayo · Sector Barrial';
+    if (!isGenericCoords) return;
+
     let active = true;
     void fetchReverseGeocodeZone(effectiveLat, effectiveLng).then((realStreet) => {
       if (active && realStreet) {
@@ -298,7 +307,10 @@ export function ServiceCard({
               )}
             </div>
             <span className="sr-only">{listing.title}</span>
-            <p className="text-xs sm:text-sm font-semibold text-[#5B6068] mt-0.5">
+            <p
+              suppressHydrationWarning
+              className="text-xs sm:text-sm font-semibold text-[#5B6068] mt-0.5"
+            >
               {categoryLabel} · a {formattedDistance} de ti
             </p>
           </div>
@@ -336,9 +348,13 @@ export function ServiceCard({
         )}
 
         {/* Franja Suave de Respaldo Comunitario / Recomendación Vecinal */}
-        <div className="rounded-2xl bg-[#F4F5F7] p-2 sm:p-2.5 flex items-center justify-between gap-2 mt-3.5">
+        <div
+          suppressHydrationWarning
+          className="rounded-2xl bg-[#F4F5F7] p-2 sm:p-2.5 flex items-center justify-between gap-2 mt-3.5"
+        >
           {/* 3 círculos decorativos y conteo de recomendaciones */}
           <div
+            suppressHydrationWarning
             className="flex items-center gap-2 min-w-0"
             data-testid={`trust-score-${listing.client_mutation_id}`}
           >
@@ -357,7 +373,7 @@ export function ServiceCard({
               />
             </div>
 
-            <span className="text-xs font-bold text-[#0B1E3F] truncate">
+            <span suppressHydrationWarning className="text-xs font-bold text-[#0B1E3F] truncate">
               {endorsementText}
             </span>
           </div>

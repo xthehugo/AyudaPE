@@ -76,9 +76,15 @@ export function useNetworkSync(
       manager.setOnlineStatus(false);
     };
 
+    const handleNetworkSyncEvent = () => {
+      setState(manager.getState());
+    };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
+      window.addEventListener('ayudape_network_changed', handleNetworkSyncEvent);
+      window.addEventListener('storage', handleNetworkSyncEvent);
     }
 
     return () => {
@@ -86,6 +92,8 @@ export function useNetworkSync(
       if (typeof window !== 'undefined') {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
+        window.removeEventListener('ayudape_network_changed', handleNetworkSyncEvent);
+        window.removeEventListener('storage', handleNetworkSyncEvent);
       }
     };
   }, [defaultSectorId, manager]);

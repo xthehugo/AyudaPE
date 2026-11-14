@@ -17,11 +17,9 @@ const SOLIDARITY_META_KEY = 'redvecina_solidarity_meta_v1';
 const AUTHOR_MAP_KEY = 'redvecina_author_device_map_v1';
 
 /**
- * ID de mutación publicado desde la laptop del usuario en Supabase ("lina · Refuerzo académico en las tardes a inicial")
+ * ID de mutaciones previamente reclamadas explícitamente en el dispositivo
  */
-const KNOWN_OWN_MUTATION_IDS = new Set<string>([
-  '3715fd35-9ae0-42c8-8d07-1ba36261f875',
-]);
+const KNOWN_OWN_MUTATION_IDS = new Set<string>([]);
 
 /**
  * Prefijos de semillas estáticas de prueba (para nunca bloquear botones en suites unitarias)
@@ -280,9 +278,6 @@ export function isOwnListing(listing?: IListingLocal | null): boolean {
   }
 
   const normalizedTitle = (listing.title || '').trim().toLowerCase();
-  if (normalizedTitle.startsWith('lina · refuerzo académico')) {
-    return true;
-  }
 
   if (typeof window === 'undefined') return false;
 

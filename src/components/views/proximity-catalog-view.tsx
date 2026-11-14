@@ -340,8 +340,13 @@ export function ProximityCatalogView({
     <section aria-label="Directorio de Oficios, Productos Locales y Brigadas" className="space-y-3.5">
       {/* Subtítulo Superior (Exacto a la Imagen de Referencia) */}
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-xs sm:text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-          <span>{displayListings.length} en tu sector · ordenados por visto bueno vecinal</span>
+        <h2
+          suppressHydrationWarning
+          className="text-xs sm:text-[13px] font-semibold text-slate-500 dark:text-slate-400"
+        >
+          <span suppressHydrationWarning>
+            {displayListings.length} en tu sector · ordenados por visto bueno vecinal
+          </span>
           <span className="sr-only">
             Economía Barrial y Soporte de Proximidad · Visto Bueno Vecinal
             {activeRadius === null

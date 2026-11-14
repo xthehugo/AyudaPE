@@ -54,8 +54,13 @@ export class SyncManager {
     this.db = dbInstance;
     this.fetchImpl = fetchFn ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
     this.baseBackoffMs = baseBackoffMs;
-    this.isOnlineState =
-      typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+    const isManualOff =
+      typeof window !== 'undefined' &&
+      localStorage.getItem('redvecina_manual_offline') === 'true';
+
+    this.isOnlineState = isManualOff
+      ? false
+      : typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
         ? navigator.onLine
         : true;
 
@@ -66,6 +71,7 @@ export class SyncManager {
     if (typeof window === 'undefined') return;
 
     window.addEventListener('online', () => {
+      if (this.isManualOffline()) return;
       this.setOnlineStatus(true);
       void this.processOutbox();
     });
@@ -75,14 +81,36 @@ export class SyncManager {
     });
   }
 
+  public isManualOffline(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('redvecina_manual_offline') === 'true';
+    } catch {
+      return false;
+    }
+  }
+
   public setOnlineStatus(online: boolean): void {
+    if (typeof window !== 'undefined') {
+      try {
+        if (!online) {
+          localStorage.setItem('redvecina_manual_offline', 'true');
+        } else {
+          localStorage.removeItem('redvecina_manual_offline');
+        }
+        window.dispatchEvent(
+          new CustomEvent('ayudape_network_changed', { detail: { isOnline: online } })
+        );
+      } catch {}
+    }
     this.isOnlineState = online;
     this.emit('state_changed');
   }
 
   public getState(): SyncManagerState {
+    const isManualOff = this.isManualOffline();
     return {
-      isOnline: this.isOnlineState,
+      isOnline: isManualOff ? false : this.isOnlineState,
       isSyncing: this.syncInProgress,
       pendingCount: this.pendingCountState,
       lastSyncTimestamp: this.lastSyncTimestampState,
@@ -304,8 +332,15 @@ export class SyncManager {
         localStorage.setItem(storageKey, payload.server_timestamp);
       }
 
-      this.emit('downlink_hydrated', payload);
-      this.emit('state_changed');
+      const hasChanges =
+        (payload.listings?.length ?? 0) > 0 ||
+        (payload.posts?.length ?? 0) > 0 ||
+        (payload.commitments?.length ?? 0) > 0;
+
+      if (hasChanges) {
+        this.emit('downlink_hydrated', payload);
+        this.emit('state_changed');
+      }
       return payload;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Fallo de red en Downlink';

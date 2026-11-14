@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { CheckCircle2, MapPin, ShieldAlert, X } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import type { NavigationTabId } from '@/components/layout/bottom-nav';
-import { NeighborhoodMap } from '@/components/map/neighborhood-map';
 import { QuickPublishSheet } from '@/components/publish/quick-publish-sheet';
 import { IncidentCheckinBanner } from '@/components/safety/incident-checkin-banner';
 import { OfflineEmergencyPrompt } from '@/components/safety/offline-emergency-prompt';
@@ -12,6 +12,18 @@ import { SwipeableNotification } from '@/components/ui/swipeable-notification';
 import { CopilotView } from '@/components/views/copilot-view';
 import { ProximityCatalogView } from '@/components/views/proximity-catalog-view';
 import { SolidarityWallView } from '@/components/views/solidarity-wall-view';
+
+const NeighborhoodMap = dynamic(
+  () => import('@/components/map/neighborhood-map').then((mod) => mod.NeighborhoodMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[400px] flex items-center justify-center bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse text-sm text-slate-500 font-bold">
+        Cargando mapa barrial...
+      </div>
+    ),
+  }
+);
 import { useOperationalMode } from '@/context/mode-context';
 import { useLocation } from '@/context/location-context';
 import { useNetworkSync } from '@/hooks/use-network-sync';
@@ -19,12 +31,12 @@ import { useDownlinkSync } from '@/hooks/use-downlink-sync';
 import {
   ALL_SEEDED_LISTINGS,
   ALL_SEEDED_POSTS,
-  INITIAL_SECTOR_LISTINGS,
-  INITIAL_SECTOR_POSTS,
 } from '@/lib/initial-data';
 import { localDb } from '@/lib/offline/db';
 import { syncManager } from '@/lib/offline/sync-manager';
-import { addNotification } from '@/lib/notifications/notifications-manager';
+import { addNotification, dispatchNativePushNotification } from '@/lib/notifications/notifications-manager';
+import { setPublicationAuthorDevice } from '@/lib/ownership';
+import type { IPostLocal } from '@shared/types';
 import {
   ensureRealtimeChannel,
   isSosWithinActiveLocality,
@@ -70,6 +82,21 @@ export default function HomePage(): React.ReactElement {
   const [showOfflinePrompt, setShowOfflinePrompt] = useState<boolean>(false);
   const [prevOnline, setPrevOnline] = useState<boolean>(true);
 
+  // Referencia estable para coordenadas activas (evita desmontar y reconectar WebSockets con cada micro-cambio de GPS)
+  const coordsRef = useRef({
+    activeLat: -12.0528,
+    activeLng: -75.2155,
+  });
+
+  coordsRef.current = {
+    activeLat: isRealLocationActive
+      ? (realGpsCoords?.lat ?? userCoords?.lat ?? currentSector?.centerLat ?? -12.0528)
+      : (currentSector?.centerLat ?? userCoords?.lat ?? -12.0528),
+    activeLng: isRealLocationActive
+      ? (realGpsCoords?.lng ?? userCoords?.lng ?? currentSector?.centerLng ?? -75.2155)
+      : (currentSector?.centerLng ?? userCoords?.lng ?? -75.2155),
+  };
+
   // Al perder la conexión a internet: activar automáticamente el modo emergencia y preguntar al vecino
   useEffect(() => {
     if (prevOnline && !isOnline) {
@@ -90,6 +117,11 @@ export default function HomePage(): React.ReactElement {
         if (parsed && parsed.description) {
           setActiveSosAlert(parsed);
           setMode('EMERGENCIA');
+          // Disparar notificación nativa y háptica al abrir la app si hay un SOS activo en curso
+          void dispatchNativePushNotification('🚨 Emergencia SOS Activa en tu barrio', {
+            body: `${parsed.description}\n📍 ${parsed.locationLabel}`,
+            tag: 'redvecina-sos-push',
+          });
         }
       }
     } catch {
@@ -115,16 +147,38 @@ export default function HomePage(): React.ReactElement {
       const incoming = customEvent.detail;
       if (!incoming || !incoming.description) return;
 
+      const postToPersist: IPostLocal = (incoming.storedRecord as IPostLocal) ?? {
+        client_mutation_id: incoming.client_mutation_id || `sos-${Date.now()}`,
+        sector_id: 1,
+        category_id: 1,
+        operational_mode: 'EMERGENCIA',
+        post_type: 'SOS_VULNERABLE',
+        title: incoming.title || '🚨 ALERTA SOS - Emergencia Inmediata',
+        description: incoming.description,
+        urgency_level: 'CRITICA',
+        public_lat: incoming.lat,
+        public_lng: incoming.lng,
+        privacy_radius_meters: 50,
+        status: 'ACTIVO',
+        client_created_at: incoming.createdAt || new Date().toISOString(),
+        is_pending_sync: false,
+      };
+
+      if (incoming.client_mutation_id && incoming.authorDeviceId) {
+        setPublicationAuthorDevice(incoming.client_mutation_id, incoming.authorDeviceId);
+      }
+
+      void localDb.bulkCachePosts([postToPersist]).then(() => {
+        setRefreshKey((k) => k + 1);
+        setLastPublishedPost(postToPersist);
+      });
+
       void persistIncomingRealtimeRecord('CADENA_FAVORES', incoming.storedRecord);
       void syncManager.hydrateDownlink(1);
       setRefreshKey((k) => k + 1);
 
-      const activeLat = isRealLocationActive
-        ? (realGpsCoords?.lat ?? userCoords?.lat ?? currentSector?.centerLat ?? -12.0528)
-        : (currentSector?.centerLat ?? userCoords?.lat ?? -12.0528);
-      const activeLng = isRealLocationActive
-        ? (realGpsCoords?.lng ?? userCoords?.lng ?? currentSector?.centerLng ?? -75.2155)
-        : (currentSector?.centerLng ?? userCoords?.lng ?? -75.2155);
+      const activeLat = coordsRef.current.activeLat;
+      const activeLng = coordsRef.current.activeLng;
 
       // Filtrar notificación SOS por localidad activa
       if (!isSosWithinActiveLocality(incoming.lat, incoming.lng, activeLat, activeLng)) {
@@ -164,16 +218,10 @@ export default function HomePage(): React.ReactElement {
         },
       });
 
-      if ('Notification' in window && Notification.permission === 'granted') {
-        try {
-          new Notification('🚨 Emergencia SOS en tu barrio', {
-            body: `${incoming.description}\n📍 Ubicación: ${incoming.locationLabel}`,
-            tag: 'redvecina-sos-push',
-          });
-        } catch {
-          // Ignorar
-        }
-      }
+      void dispatchNativePushNotification('🚨 Emergencia SOS en tu barrio', {
+        body: `${incoming.description}\n📍 Ubicación: ${incoming.locationLabel}`,
+        tag: 'redvecina-sos-push',
+      });
     };
 
     const handleWebSocketPublication = (e: Event) => {
@@ -194,12 +242,8 @@ export default function HomePage(): React.ReactElement {
       channel.onmessage = (event) => {
         if (event.data?.type === 'SOS_EMERGENCY' && event.data?.payload) {
           const incoming = event.data.payload as ActiveSosAlertPayload;
-          const activeLat = isRealLocationActive
-            ? (realGpsCoords?.lat ?? userCoords?.lat ?? currentSector?.centerLat ?? -12.0528)
-            : (currentSector?.centerLat ?? userCoords?.lat ?? -12.0528);
-          const activeLng = isRealLocationActive
-            ? (realGpsCoords?.lng ?? userCoords?.lng ?? currentSector?.centerLng ?? -75.2155)
-            : (currentSector?.centerLng ?? userCoords?.lng ?? -75.2155);
+          const activeLat = coordsRef.current.activeLat;
+          const activeLng = coordsRef.current.activeLng;
 
           if (!isSosWithinActiveLocality(incoming.lat, incoming.lng, activeLat, activeLng)) {
             return;
@@ -222,16 +266,10 @@ export default function HomePage(): React.ReactElement {
               actionLabel: 'Ver emergencia en mapa',
             },
           });
-          if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-              new Notification('🚨 Emergencia SOS en tu barrio', {
-                body: `${incoming.description}\n📍 Ubicación: ${incoming.locationLabel}`,
-                tag: 'redvecina-sos-push',
-              });
-            } catch {
-              // Ignorar
-            }
-          }
+          void dispatchNativePushNotification('🚨 Emergencia SOS en tu barrio', {
+            body: `${incoming.description}\n📍 Ubicación: ${incoming.locationLabel}`,
+            tag: 'redvecina-sos-push',
+          });
         }
       };
     }
@@ -244,7 +282,7 @@ export default function HomePage(): React.ReactElement {
         channel.close();
       }
     };
-  }, [isRealLocationActive, realGpsCoords?.lat, realGpsCoords?.lng, userCoords?.lat, userCoords?.lng, currentSector?.centerLat, currentSector?.centerLng, setMode]);
+  }, [setMode]);
 
   useEffect(() => {
     let mounted = true;
@@ -363,7 +401,7 @@ export default function HomePage(): React.ReactElement {
     async function seedLocalCacheIfEmpty() {
       try {
         const DATA_CLEANUP_KEY = 'redvecina_dataset_version';
-        const CURRENT_DATA_VERSION = 'v3_huancayo_clean_triple_coords';
+        const CURRENT_DATA_VERSION = 'v4_huancayo_exposicion_profesional';
         const currentVersion = typeof window !== 'undefined' ? localStorage.getItem(DATA_CLEANUP_KEY) : null;
 
         if (currentVersion !== CURRENT_DATA_VERSION) {
@@ -413,6 +451,7 @@ export default function HomePage(): React.ReactElement {
       onOpenSosPublish={handleOpenSosPublish}
       hasEmergency={hasEmergency}
     >
+      <h1 className="sr-only">RedVecina · Economía Barrial y Soporte de Proximidad</h1>
       {/* PUNTO 5: Alerta fija en la parte superior de la app con la descripción de lo ocurrido y la ubicación */}
       {activeSosAlert && (
         <div
@@ -509,7 +548,7 @@ export default function HomePage(): React.ReactElement {
 
       {activeTab === 'DIRECTORIO' && (
         <ProximityCatalogView
-          initialListings={INITIAL_SECTOR_LISTINGS}
+          initialListings={ALL_SEEDED_LISTINGS}
           refreshKey={refreshKey}
           injectedListing={lastPublishedListing}
         />
@@ -517,8 +556,8 @@ export default function HomePage(): React.ReactElement {
 
       {activeTab === 'MAPA' && (
         <NeighborhoodMap
-          initialListings={INITIAL_SECTOR_LISTINGS}
-          initialPosts={INITIAL_SECTOR_POSTS}
+          initialListings={ALL_SEEDED_LISTINGS}
+          initialPosts={ALL_SEEDED_POSTS}
           refreshKey={refreshKey}
           focusCoords={focusedMapCoords}
         />
@@ -526,7 +565,7 @@ export default function HomePage(): React.ReactElement {
 
       {activeTab === 'MURO' && (
         <SolidarityWallView
-          initialPosts={INITIAL_SECTOR_POSTS}
+          initialPosts={ALL_SEEDED_POSTS}
           refreshKey={refreshKey}
           injectedPost={lastPublishedPost}
         />

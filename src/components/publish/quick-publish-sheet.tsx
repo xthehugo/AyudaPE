@@ -10,8 +10,10 @@ import {
   MapPin,
   Mic,
   MicOff,
+  Minus,
   Package,
   Phone,
+  Plus,
   ShieldAlert,
   Wrench,
   X,
@@ -34,6 +36,7 @@ import {
   broadcastRealtimeSos,
 } from '@/lib/realtime/sos-realtime';
 import { executeQuickPublishPersist } from './quick-publish-modal';
+import type { ResourceProgressItem } from '@/components/views/solidarity-wall-view';
 
 export interface QuickPublishSheetProps {
   isOpen: boolean;
@@ -58,6 +61,17 @@ const DEFAULT_SECTOR_LAT = -12.07679;
 const DEFAULT_SECTOR_LNG = -75.21735;
 const PERU_CELL_REGEX = /^9\d{8}$/;
 
+function generateSafeUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 type PostCategoryTab = 'OFICIO' | 'PRODUCTO' | 'FAVOR' | 'SOS';
 
 interface FormFieldErrors {
@@ -66,6 +80,8 @@ interface FormFieldErrors {
   inputText?: string;
   location?: string;
   contactPhone?: string;
+  neededItem?: string;
+  neededQuantity?: string;
 }
 
 /**
@@ -163,6 +179,11 @@ export function QuickPublishSheet({
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors>({});
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
+  // Campos específicos para Favor Solidario: ¿Qué necesita y cuánto?
+  const [neededItem, setNeededItem] = useState<string>('');
+  const [neededQuantity, setNeededQuantity] = useState<number>(1);
+  const [neededUnit, setNeededUnit] = useState<string>('unidades');
+
   // Ubicación inicial: si está en "Mi Ubicación (GPS Real)" usa el GPS real; si cambió de sector, usa el sector simulado
   const defaultLat = isRealLocationActive
     ? (realGpsCoords?.lat ?? userCoords?.lat ?? currentSector?.centerLat ?? DEFAULT_SECTOR_LAT)
@@ -174,6 +195,8 @@ export function QuickPublishSheet({
     lat: defaultLat,
     lng: defaultLng,
   });
+  const [hasCustomLocation, setHasCustomLocation] = useState<boolean>(false);
+  const wasOpenRef = useRef<boolean>(false);
   const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
   const miniMapRef = useRef<HTMLDivElement>(null);
 
@@ -228,23 +251,32 @@ export function QuickPublishSheet({
       if (profilePhone && PERU_CELL_REGEX.test(profilePhone)) {
         setContactPhone((prev) => (prev.trim().length > 0 ? prev : profilePhone));
       }
-      if (!isRealLocationActive && currentSector) {
-        setCoords({ lat: currentSector.centerLat, lng: currentSector.centerLng });
-      } else if (lastKnownLat !== undefined && lastKnownLng !== undefined) {
-        setCoords({ lat: lastKnownLat, lng: lastKnownLng });
+      if (!hasCustomLocation || activeCategory === 'SOS') {
+        if (!isRealLocationActive && currentSector) {
+          setCoords({ lat: currentSector.centerLat, lng: currentSector.centerLng });
+        } else if (lastKnownLat !== undefined && lastKnownLng !== undefined) {
+          setCoords({ lat: lastKnownLat, lng: lastKnownLng });
+        }
       }
     } catch {
       // Ignorar en SSR
     }
-  }, [isRealLocationActive, currentSector]);
+  }, [isRealLocationActive, currentSector, hasCustomLocation, activeCategory]);
 
   useEffect(() => {
     if (isOpen) {
-      syncProfileDefaults();
-      setFieldErrors({});
-      if (initialSos) {
-        setActiveCategory('SOS');
+      if (!wasOpenRef.current) {
+        wasOpenRef.current = true;
+        setHasCustomLocation(false);
+        syncProfileDefaults();
+        setFieldErrors({});
+        if (initialSos) {
+          setActiveCategory('SOS');
+        }
       }
+    } else {
+      wasOpenRef.current = false;
+      setHasCustomLocation(false);
     }
   }, [isOpen, initialSos, syncProfileDefaults]);
 
@@ -288,8 +320,13 @@ export function QuickPublishSheet({
   // Sincronizar ubicación al abrir:
   // - Si está en un sector simulado (!isRealLocationActive), ignorar el GPS real y poner las coordenadas del sector.
   // - Si está en "Mi Ubicación (GPS Real)" (isRealLocationActive), usar el GPS real del dispositivo.
+  // - Si el usuario ya personalizó manualmente la ubicación en el mapa y NO es SOS, no sobreescribir.
   useEffect(() => {
     if (!isOpen) return;
+
+    if (hasCustomLocation && activeCategory !== 'SOS') {
+      return;
+    }
 
     if (!isRealLocationActive) {
       if (currentSector && Number.isFinite(currentSector.centerLat) && Number.isFinite(currentSector.centerLng)) {
@@ -306,6 +343,8 @@ export function QuickPublishSheet({
 
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       const saveRealPos = (pos: GeolocationPosition) => {
+        if (hasCustomLocation && activeCategory !== 'SOS') return;
+
         const nextLat = Number(pos.coords.latitude.toFixed(6));
         const nextLng = Number(pos.coords.longitude.toFixed(6));
         setCoords({ lat: nextLat, lng: nextLng });
@@ -333,16 +372,17 @@ export function QuickPublishSheet({
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
-  }, [isOpen, isRealLocationActive, currentSector, userCoords, realGpsCoords]);
+  }, [isOpen, isRealLocationActive, currentSector, userCoords, realGpsCoords, hasCustomLocation, activeCategory]);
 
   // Acción para recentrar en GPS actual (Respuesta instantánea)
   const handleLocateCurrentGps = useCallback(() => {
+    setHasCustomLocation(false);
     // 1. Si ya tenemos coordenadas conocidas (GPS real o del contexto), aplicarlas en 0ms
     const instant = realGpsCoords ?? userCoords;
     if (instant && Number.isFinite(instant.lat) && Number.isFinite(instant.lng)) {
       setCoords({ lat: instant.lat, lng: instant.lng });
       setFieldErrors((prev) => ({ ...prev, location: undefined }));
-      toast.success('Ubicación confirmada', {
+      toast.success('Ubicación GPS restablecida', {
         description: `Lat: ${instant.lat.toFixed(4)}, Lng: ${instant.lng.toFixed(4)}`,
       });
     }
@@ -357,6 +397,7 @@ export function QuickPublishSheet({
     setIsLocatingGps(true);
     const applyGps = (pos: GeolocationPosition) => {
       setIsLocatingGps(false);
+      setHasCustomLocation(false);
       const nextLat = Number(pos.coords.latitude.toFixed(6));
       const nextLng = Number(pos.coords.longitude.toFixed(6));
       setCoords({ lat: nextLat, lng: nextLng });
@@ -389,6 +430,12 @@ export function QuickPublishSheet({
 
   // Clic en el mini-mapa para ajustar posición
   const handleMiniMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (activeCategory === 'SOS') {
+      toast.info('Ubicación SOS protegida', {
+        description: 'Las solicitudes de emergencia se bloquean a tu GPS real para auxilio verificado.',
+      });
+      return;
+    }
     if (!miniMapRef.current) return;
     const rect = miniMapRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
@@ -407,6 +454,7 @@ export function QuickPublishSheet({
     const nextLng = Number((coords.lng + deltaLng).toFixed(6));
 
     setCoords({ lat: nextLat, lng: nextLng });
+    setHasCustomLocation(true);
     setFieldErrors((prev) => ({ ...prev, location: undefined }));
   };
 
@@ -452,6 +500,13 @@ export function QuickPublishSheet({
   const handleSelectCategory = (cat: PostCategoryTab) => {
     setActiveCategory(cat);
     setFieldErrors({});
+    if (cat === 'SOS') {
+      setHasCustomLocation(false);
+      const instant = realGpsCoords ?? userCoords;
+      if (instant && Number.isFinite(instant.lat) && Number.isFinite(instant.lng)) {
+        setCoords({ lat: instant.lat, lng: instant.lng });
+      }
+    }
   };
 
   // Manejo de carga de fotos con vista previa inmediata
@@ -525,8 +580,28 @@ export function QuickPublishSheet({
       }
     }
 
+    // Favor solidario requiere especificar qué recurso/apoyo necesita y la cantidad
+    if (activeCategory === 'FAVOR') {
+      if (neededItem.trim().length < 2) {
+        errors.neededItem = 'Por favor indica qué recurso o apoyo necesitas.';
+      }
+      if (!neededQuantity || neededQuantity < 1) {
+        errors.neededQuantity = 'Indica una cantidad válida (mínimo 1).';
+      }
+    }
+
     return errors;
-  }, [activeCategory, authorName, titleText, inputText, coords.lat, coords.lng, contactPhone]);
+  }, [
+    activeCategory,
+    authorName,
+    titleText,
+    inputText,
+    coords.lat,
+    coords.lng,
+    contactPhone,
+    neededItem,
+    neededQuantity,
+  ]);
 
   // Resolver ubicación automática para SOS:
   // - Si el usuario cambió a un sector simulado (!isRealLocationActive), ignorar el GPS físico y usar el sector simulado.
@@ -664,7 +739,7 @@ export function QuickPublishSheet({
         zeroMoney = true;
       } else {
         targetModule = 'CADENA_FAVORES';
-        targetType = 'OFERTA_FAVOR';
+        targetType = 'SOLICITUD_FAVOR';
         urgency = 'MEDIA';
         hasMonetary = false;
         zeroMoney = true;
@@ -689,6 +764,29 @@ export function QuickPublishSheet({
           ? savedProfilePhone
           : '987654321';
 
+      let customResources:
+        | Array<{
+            client_mutation_id?: string;
+            item_name: string;
+            quantity_needed: number;
+            unit: string;
+          }>
+        | undefined = undefined;
+
+      if (activeCategory === 'FAVOR') {
+        const item = neededItem.trim() || 'Apoyo y coordinación comunitaria';
+        const qty = Math.max(1, Number(neededQuantity) || 1);
+        const u = neededUnit.trim() || 'unidades';
+        customResources = [
+          {
+            client_mutation_id: generateSafeUuid(),
+            item_name: item,
+            quantity_needed: qty,
+            unit: u,
+          },
+        ];
+      }
+
       const intentToPublish: NeighborIntent = {
         module: targetModule,
         post_type: targetType,
@@ -699,6 +797,7 @@ export function QuickPublishSheet({
         has_monetary_intent: hasMonetary,
         zero_money_compliant: zeroMoney,
         is_pii_redacted: isSos,
+        resources: customResources,
       };
 
       const res = await executeQuickPublishPersist({
@@ -710,6 +809,38 @@ export function QuickPublishSheet({
         photoUrl: isSos ? undefined : photoPreview ?? undefined,
         db: customDb,
       });
+
+      if (activeCategory === 'FAVOR' && customResources && customResources.length > 0) {
+        const resourceToCache: ResourceProgressItem = {
+          id: Date.now(),
+          client_mutation_id: customResources[0].client_mutation_id || generateSafeUuid(),
+          post_client_mutation_id: res.client_mutation_id,
+          item_name: customResources[0].item_name,
+          quantity_needed: customResources[0].quantity_needed,
+          quantity_committed: 0,
+          unit: customResources[0].unit,
+        };
+
+        if (typeof window !== 'undefined') {
+          try {
+            const rawCache = localStorage.getItem('redvecina_resources_cache');
+            const parsed = rawCache ? (JSON.parse(rawCache) as ResourceProgressItem[]) : [];
+            const nextCache = [
+              resourceToCache,
+              ...parsed.filter((r) => r.post_client_mutation_id !== res.client_mutation_id),
+            ];
+            localStorage.setItem('redvecina_resources_cache', JSON.stringify(nextCache));
+            window.dispatchEvent(
+              new CustomEvent('redvecina_resource_created', { detail: { resource: resourceToCache } })
+            );
+            window.dispatchEvent(
+              new CustomEvent('redvecina_solidarity_stage_updated', {
+                detail: { postMutationId: res.client_mutation_id, stage: 'EN_ESPERA' },
+              })
+            );
+          } catch {}
+        }
+      }
 
       const myDeviceId = getOrCreateDeviceId();
 
@@ -755,6 +886,11 @@ export function QuickPublishSheet({
           authorDeviceId: myDeviceId,
           storedRecord: res.storedRecord,
         });
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('redvecina_open_sos_dialog'));
+          }
+        }, 300);
       }
 
       // Notificar cualquier publicación nueva (Oficio, Producto, Favor o SOS) por WebSocket a todos los dispositivos
@@ -813,6 +949,9 @@ export function QuickPublishSheet({
       // Limpiar campos del formulario y cerrar de inmediato
       setTitleText('');
       setInputText('');
+      setNeededItem('');
+      setNeededQuantity(1);
+      setNeededUnit('unidades');
       setPhotoPreview(null);
       setAttachedPhotoName(null);
       setFieldErrors({});
@@ -834,6 +973,9 @@ export function QuickPublishSheet({
     inputText,
     isListening,
     mode,
+    neededItem,
+    neededQuantity,
+    neededUnit,
     onPublished,
     photoPreview,
     resetTranscript,
@@ -1004,8 +1146,33 @@ export function QuickPublishSheet({
 
         {/* FORMULARIO CORTO Y ESPECÍFICO SEGÚN EL TIPO */}
         {isSos ? (
-          /* FLUJO SOS: Un solo campo "¿Qué sucedió?" (descripción) */
+          /* FLUJO SOS: Un solo campo "¿Qué sucedió?" (descripción) + Acceso a Rescate Táctico */
           <div className="space-y-3">
+            {/* Tarjeta de Acceso Directo a Rescate Táctico USAR (Baliza Morse + Malla P2P + Pantalla 72h) */}
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-black text-amber-900 dark:text-amber-200">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>¿Atrapado bajo escombros o sin cobertura celular?</span>
+              </div>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
+                Activa la baliza acústica Morse para geófonos USAR de bomberos, la retransmisión por malla P2P (50 saltos) y el modo ahorro 72h con pantalla negra.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  handleAnimatedClose();
+                  setTimeout(() => {
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('redvecina_open_sos_dialog'));
+                    }
+                  }, 150);
+                }}
+                className="w-full min-h-[48px] h-12 rounded-xl bg-[#C0392B] hover:bg-red-700 text-white font-black text-xs inline-flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shadow-xs"
+              >
+                <span>📡 Abrir Baliza Acústica y Rescate Táctico SOS</span>
+              </button>
+            </div>
+
             <div>
               <label
                 htmlFor="publish-sos-description"
@@ -1238,6 +1405,196 @@ export function QuickPublishSheet({
               )}
             </div>
 
+            {/* 3.1. ¿Qué necesitas y cuánto? (Exclusivo Favor Solidario) */}
+            {activeCategory === 'FAVOR' && (
+              <div
+                className={`p-4 rounded-2xl border-2 space-y-3.5 transition-all ${
+                  isEmergencyMode
+                    ? 'bg-[#1E2636]/90 border-[#FB7185]/60 text-white'
+                    : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60 text-[#0F172A] dark:text-[#F8FAFC]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="publish-needed-item"
+                    className="text-xs font-black uppercase tracking-wide flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300"
+                  >
+                    <HeartHandshake className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>
+                      ¿Qué necesitas y cuánto? <span className="text-[#DC2626] dark:text-[#FCA5A5]">*</span>
+                    </span>
+                  </label>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                    Muro Solidario
+                  </span>
+                </div>
+
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 -mt-1">
+                  Especifica el recurso o apoyo exacto para que tus vecinos puedan comprometerse y cubrirlo.
+                </p>
+
+                {/* Input del recurso */}
+                <div>
+                  <input
+                    id="publish-needed-item"
+                    type="text"
+                    maxLength={60}
+                    value={neededItem}
+                    onChange={(e) => {
+                      setNeededItem(e.target.value.slice(0, 60));
+                      if (fieldErrors.neededItem) {
+                        setFieldErrors((prev) => ({ ...prev, neededItem: undefined }));
+                      }
+                    }}
+                    placeholder="Ej. Bidones de agua potable, Frazadas, Balones..."
+                    aria-invalid={Boolean(fieldErrors.neededItem)}
+                    aria-describedby={fieldErrors.neededItem ? 'error-needed-item' : undefined}
+                    className={`w-full min-h-[48px] h-12 px-3.5 rounded-xl border-2 text-sm font-bold outline-none ${
+                      isEmergencyMode
+                        ? 'bg-[#141C2B] text-white placeholder:text-[#94A3B8] border-[#FB7185] focus:border-[#FDE047]'
+                        : 'bg-white dark:bg-[#1E293B] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-slate-400 border-slate-300 dark:border-slate-600 focus:border-emerald-600 dark:focus:border-emerald-400'
+                    } ${fieldErrors.neededItem ? 'border-[#DC2626] dark:border-[#F87171]' : ''}`}
+                  />
+                  {fieldErrors.neededItem && (
+                    <p
+                      id="error-needed-item"
+                      role="alert"
+                      className="mt-1 text-xs font-extrabold text-[#B91C1C] dark:text-[#FCA5A5] flex items-center gap-1.5"
+                    >
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{fieldErrors.neededItem}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Sugerencias rápidas (Chips táctiles) */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {[
+                    { label: 'Agua potable', item: 'Bidones de agua potable', unit: 'bidones', qty: 3 },
+                    { label: 'Víveres', item: 'Canastas de víveres no perecibles', unit: 'raciones', qty: 2 },
+                    { label: 'Frazadas', item: 'Frazadas de abrigo', unit: 'frazadas', qty: 2 },
+                    { label: 'Medicamentos', item: 'Medicamentos de botiquín', unit: 'unidades', qty: 1 },
+                    { label: 'Voluntarios', item: 'Voluntarios de apoyo vecinal', unit: 'personas', qty: 2 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        setNeededItem(preset.item);
+                        setNeededUnit(preset.unit);
+                        setNeededQuantity(preset.qty);
+                        if (fieldErrors.neededItem || fieldErrors.neededQuantity) {
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            neededItem: undefined,
+                            neededQuantity: undefined,
+                          }));
+                        }
+                      }}
+                      className="min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      + {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Contador de Cantidad y Unidad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-xs font-black block mb-1 text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                      Cantidad requerida <span className="text-[#DC2626] dark:text-[#FCA5A5]">*</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNeededQuantity((prev) => Math.max(1, prev - 1));
+                          if (fieldErrors.neededQuantity) {
+                            setFieldErrors((prev) => ({ ...prev, neededQuantity: undefined }));
+                          }
+                        }}
+                        aria-label="Disminuir cantidad"
+                        className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-white font-black flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Minus className="w-5 h-5" />
+                      </button>
+
+                      <input
+                        type="number"
+                        min={1}
+                        max={999}
+                        value={neededQuantity}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setNeededQuantity(Number.isNaN(val) ? 1 : Math.max(1, Math.min(999, val)));
+                          if (fieldErrors.neededQuantity) {
+                            setFieldErrors((prev) => ({ ...prev, neededQuantity: undefined }));
+                          }
+                        }}
+                        aria-label="Cantidad requerida"
+                        className={`min-h-[48px] h-12 w-full text-center rounded-xl border-2 font-black text-lg outline-none ${
+                          isEmergencyMode
+                            ? 'bg-[#141C2B] text-white border-[#FB7185]'
+                            : 'bg-white dark:bg-[#1E293B] text-[#0F172A] dark:text-[#F8FAFC] border-slate-300 dark:border-slate-600 focus:border-emerald-600 dark:focus:border-emerald-400'
+                        }`}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNeededQuantity((prev) => Math.min(999, prev + 1));
+                          if (fieldErrors.neededQuantity) {
+                            setFieldErrors((prev) => ({ ...prev, neededQuantity: undefined }));
+                          }
+                        }}
+                        aria-label="Aumentar cantidad"
+                        className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-white font-black flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                    {fieldErrors.neededQuantity && (
+                      <p
+                        role="alert"
+                        className="mt-1 text-xs font-extrabold text-[#B91C1C] dark:text-[#FCA5A5] flex items-center gap-1.5"
+                      >
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{fieldErrors.neededQuantity}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="publish-needed-unit"
+                      className="text-xs font-black block mb-1 text-slate-700 dark:text-slate-300 uppercase tracking-wide"
+                    >
+                      Unidad de medida
+                    </label>
+                    <select
+                      id="publish-needed-unit"
+                      value={neededUnit}
+                      onChange={(e) => setNeededUnit(e.target.value)}
+                      className={`w-full min-h-[48px] h-12 px-3 rounded-xl border-2 font-bold text-sm outline-none cursor-pointer ${
+                        isEmergencyMode
+                          ? 'bg-[#141C2B] text-white border-[#FB7185] focus:border-[#FDE047]'
+                          : 'bg-white dark:bg-[#1E293B] text-[#0F172A] dark:text-[#F8FAFC] border-slate-300 dark:border-slate-600 focus:border-emerald-600 dark:focus:border-emerald-400'
+                      }`}
+                    >
+                      <option value="unidades">Unidades</option>
+                      <option value="bidones">Bidones (agua)</option>
+                      <option value="raciones">Raciones / Platos</option>
+                      <option value="frazadas">Frazadas / Mantas</option>
+                      <option value="personas">Personas / Voluntarios</option>
+                      <option value="balones">Balones (oxígeno/gas)</option>
+                      <option value="kilos">Kilos (kg)</option>
+                      <option value="cajas">Cajas / Paquetes</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 4. Ubicación (Obligatorio en Oficio, Producto y Favor solidario) */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -1306,7 +1663,9 @@ export function QuickPublishSheet({
                 </div>
 
                 <div className="absolute top-2 left-2 bg-white/95 dark:bg-slate-900/95 text-[11px] font-extrabold text-slate-900 dark:text-white px-2.5 py-1 rounded-full shadow-xs border border-slate-300 dark:border-slate-600 pointer-events-none">
-                  Toca el mapa para ajustar la ubicación
+                  {hasCustomLocation
+                    ? '📍 Ubicación personalizada en mapa'
+                    : 'Toca el mapa para ajustar la ubicación'}
                 </div>
 
                 <div className="absolute bottom-1.5 left-2 right-2 bg-slate-900/90 text-white text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full text-center truncate pointer-events-none">

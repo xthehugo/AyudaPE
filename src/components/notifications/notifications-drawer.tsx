@@ -18,6 +18,7 @@ import {
   useNotifications,
 } from '@/hooks/use-notifications';
 import type { INotificationItem, NotificationType } from '@/lib/notifications/notifications-manager';
+import { useOperationalMode } from '@/context/mode-context';
 
 export interface NotificationsDrawerProps {
   isOpen: boolean;
@@ -49,58 +50,58 @@ function getNotificationVisuals(type: NotificationType) {
     case 'SOS_ALERT':
       return {
         icon: ShieldAlert,
-        bgIcon: 'bg-red-500/20 text-red-500 border-red-500/40',
-        badgeColor: 'bg-red-600 text-white',
+        bgIcon: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/60 dark:text-red-400 dark:border-red-800',
+        badgeColor: 'bg-red-600 text-white font-black',
         badgeText: 'Emergencia SOS',
-        borderUnread: 'border-red-500/80 bg-red-950/20',
+        cardBorder: 'border-red-300 dark:border-red-900/60',
       };
     case 'MEETING_CONVOKED':
       return {
         icon: Megaphone,
-        bgIcon: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40',
-        badgeColor: 'bg-[#0F2A56] text-indigo-200 border border-indigo-400/50',
+        bgIcon: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800',
+        badgeColor: 'bg-[#0F2A56] text-white font-extrabold',
         badgeText: 'Junta Vecinal',
-        borderUnread: 'border-indigo-500/80 bg-indigo-950/20',
+        cardBorder: 'border-indigo-200 dark:border-indigo-800',
       };
     case 'SOLIDARITY_DELIVERED':
       return {
         icon: PackageCheck,
-        bgIcon: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+        bgIcon: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800',
         badgeColor: 'bg-amber-500 text-slate-950 font-black',
         badgeText: 'Entrega pendiente',
-        borderUnread: 'border-amber-500/80 bg-amber-950/20',
+        cardBorder: 'border-amber-200 dark:border-amber-800',
       };
     case 'SOLIDARITY_COMMIT':
       return {
         icon: HandHeart,
-        bgIcon: 'bg-sky-500/20 text-sky-400 border-sky-500/40',
-        badgeColor: 'bg-sky-700 text-white',
+        bgIcon: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400 dark:border-sky-800',
+        badgeColor: 'bg-sky-700 text-white font-bold',
         badgeText: 'Compromiso',
-        borderUnread: 'border-sky-500/80 bg-sky-950/20',
+        cardBorder: 'border-sky-200 dark:border-sky-800',
       };
     case 'SOLIDARITY_CONFIRMED':
       return {
         icon: CheckCircle2,
-        bgIcon: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-        badgeColor: 'bg-emerald-700 text-white',
+        bgIcon: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800',
+        badgeColor: 'bg-emerald-700 text-white font-bold',
         badgeText: 'Confirmado',
-        borderUnread: 'border-emerald-500/80 bg-emerald-950/20',
+        cardBorder: 'border-emerald-200 dark:border-emerald-800',
       };
     case 'LISTING_ENDORSED':
       return {
         icon: Star,
-        bgIcon: 'bg-amber-400/20 text-amber-400 border-amber-400/40',
-        badgeColor: 'bg-amber-600 text-white',
+        bgIcon: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+        badgeColor: 'bg-amber-600 text-white font-bold',
         badgeText: 'Recomendación',
-        borderUnread: 'border-amber-400/80 bg-amber-950/20',
+        cardBorder: 'border-amber-200 dark:border-amber-800',
       };
     default:
       return {
         icon: Bell,
-        bgIcon: 'bg-slate-500/20 text-slate-400 border-slate-500/40',
-        badgeColor: 'bg-slate-700 text-white',
+        bgIcon: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+        badgeColor: 'bg-slate-700 text-white font-bold',
         badgeText: 'Aviso',
-        borderUnread: 'border-slate-500/80 bg-slate-900/30',
+        cardBorder: 'border-slate-200 dark:border-slate-700',
       };
   }
 }
@@ -109,6 +110,9 @@ export function NotificationsDrawer({
   isOpen,
   onClose,
 }: NotificationsDrawerProps): React.ReactElement | null {
+  const { mode } = useOperationalMode();
+  const isEmergencyMode = mode === 'EMERGENCIA';
+
   const {
     notifications,
     unreadCount,
@@ -180,25 +184,53 @@ export function NotificationsDrawer({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md h-full bg-[#0F172A] text-slate-100 flex flex-col shadow-2xl border-l border-slate-700/80 transform transition-transform animate-in slide-in-from-right duration-300"
+        className={`w-full max-w-md h-full flex flex-col shadow-2xl border-l transform transition-transform animate-in slide-in-from-right duration-300 ${
+          isEmergencyMode
+            ? 'bg-[#0B101B] text-white border-[#FDE047]/70'
+            : 'bg-[#F8FAFC] dark:bg-[#0B132B] text-[#0B1E3F] dark:text-slate-100 border-slate-200/80 dark:border-slate-800'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* CABECERA */}
-        <header className="p-4 border-b border-slate-800 bg-[#141E33] flex items-center justify-between shrink-0">
+        {/* CABECERA (Estilo AyudaPE) */}
+        <header
+          className={`p-4 border-b flex items-center justify-between shrink-0 shadow-xs ${
+            isEmergencyMode
+              ? 'bg-[#1E2636] border-[#FDE047]/60 text-white'
+              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-[#0B1E3F] dark:text-white'
+          }`}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-900/60 border border-indigo-500/50 flex items-center justify-center text-indigo-300">
-              <Bell className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs ${
+                isEmergencyMode
+                  ? 'bg-[#991B1B] text-[#FDE047] border border-[#FDE047]'
+                  : 'bg-[#0F2A56] text-white'
+              }`}
+            >
+              {isEmergencyMode ? <ShieldAlert className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black tracking-tight text-white">Notificaciones</h2>
-                {unreadCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-red-600 text-white animate-pulse">
-                    {unreadCount} nuevas
+                <h2 className="text-base font-black tracking-tight">Notificaciones</h2>
+                {isEmergencyMode ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#991B1B] text-[#FDE047] border border-[#FDE047] animate-pulse">
+                    🚨 MODO SOS
                   </span>
+                ) : (
+                  unreadCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-red-600 text-white animate-pulse">
+                      {unreadCount} nuevas
+                    </span>
+                  )
                 )}
               </div>
-              <p className="text-xs text-slate-400 font-medium">Avisos y estados de tu comunidad</p>
+              <p
+                className={`text-xs font-semibold ${
+                  isEmergencyMode ? 'text-[#FDE047]' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {isEmergencyMode ? 'Alertas críticas y respuesta vecinal' : 'Avisos y estados de tu comunidad'}
+              </p>
             </div>
           </div>
 
@@ -209,9 +241,9 @@ export function NotificationsDrawer({
                 onClick={markAllAsRead}
                 title="Marcar todas como leídas"
                 aria-label="Marcar todas como leídas"
-                className="min-h-[48px] min-w-[44px] h-10 px-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all"
+                className="min-h-[48px] min-w-[44px] h-10 px-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-[#0F2A56] hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
               >
-                <CheckCheck className="w-4 h-4 text-emerald-400" />
+                <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span className="hidden sm:inline">Leídas</span>
               </button>
             )}
@@ -222,7 +254,7 @@ export function NotificationsDrawer({
                 onClick={clearAllNotifications}
                 title="Vaciar bandeja de notificaciones"
                 aria-label="Vaciar bandeja de notificaciones"
-                className="min-h-[48px] min-w-[44px] h-10 px-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-950/30 text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all"
+                className="min-h-[48px] min-w-[44px] w-10 h-10 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -232,22 +264,36 @@ export function NotificationsDrawer({
               type="button"
               onClick={onClose}
               aria-label="Cerrar bandeja de notificaciones"
-              className="min-h-[48px] min-w-[44px] w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center active:scale-95 transition-all"
+              className={`min-h-[48px] min-w-[44px] w-10 h-10 rounded-xl flex items-center justify-center active:scale-95 transition-all cursor-pointer ${
+                isEmergencyMode
+                  ? 'text-[#FDE047] hover:bg-white/10'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </header>
 
-        {/* FILTROS RÁPIDOS */}
-        <div className="px-4 py-2.5 border-b border-slate-800/80 bg-[#0F172A] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+        {/* FILTROS RÁPIDOS EN PÍLDORAS SEGMENTADAS */}
+        <div
+          className={`px-4 py-2.5 border-b flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 ${
+            isEmergencyMode
+              ? 'bg-[#141A24] border-[#FDE047]/30'
+              : 'bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800'
+          }`}
+        >
           <button
             type="button"
             onClick={() => setActiveFilter('ALL')}
-            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeFilter === 'ALL'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                ? isEmergencyMode
+                  ? 'bg-[#FDE047] text-[#450A0A] font-black shadow-xs'
+                  : 'bg-[#0F2A56] text-white shadow-xs'
+                : isEmergencyMode
+                ? 'bg-[#1E2636] text-slate-300 hover:text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
             Todas ({notifications.length})
@@ -255,10 +301,14 @@ export function NotificationsDrawer({
           <button
             type="button"
             onClick={() => setActiveFilter('FAVORES')}
-            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeFilter === 'FAVORES'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                ? isEmergencyMode
+                  ? 'bg-emerald-600 text-white font-black shadow-xs'
+                  : 'bg-[#0F2A56] text-white shadow-xs'
+                : isEmergencyMode
+                ? 'bg-[#1E2636] text-slate-300 hover:text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
             Favores y Oficios
@@ -266,10 +316,12 @@ export function NotificationsDrawer({
           <button
             type="button"
             onClick={() => setActiveFilter('SEGURIDAD')}
-            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeFilter === 'SEGURIDAD'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                ? 'bg-red-600 text-white font-black shadow-xs border border-red-400'
+                : isEmergencyMode
+                ? 'bg-[#1E2636] text-red-400 hover:text-red-300 border border-red-900/60'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
             SOS
@@ -277,26 +329,50 @@ export function NotificationsDrawer({
           <button
             type="button"
             onClick={() => setActiveFilter('JUNTAS')}
-            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            className={`min-h-[48px] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeFilter === 'JUNTAS'
-                ? 'bg-[#0F2A56] text-white border border-indigo-400 shadow-xs'
-                : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                ? isEmergencyMode
+                  ? 'bg-emerald-700 text-white font-black shadow-xs'
+                  : 'bg-[#0F2A56] text-white shadow-xs'
+                : isEmergencyMode
+                ? 'bg-[#1E2636] text-slate-300 hover:text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
             Juntas
           </button>
         </div>
 
-        {/* LISTADO DE NOTIFICACIONES */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* LISTADO DE NOTIFICACIONES (Tarjetas Estilo Página) */}
+        <div
+          className={`flex-1 overflow-y-auto p-4 space-y-3 ${
+            isEmergencyMode ? 'bg-[#0B101B]' : 'bg-slate-50/70 dark:bg-[#0B132B]'
+          }`}
+        >
           {filteredNotifications.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-              <div className="w-16 h-16 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-500">
-                <Bell className="w-8 h-8 stroke-[1.5]" />
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  isEmergencyMode
+                    ? 'bg-[#1E2636] border-2 border-[#FDE047] text-[#FDE047]'
+                    : 'bg-sky-50 dark:bg-slate-800 border border-sky-100 dark:border-slate-700 text-[#0F2A56] dark:text-sky-300'
+                }`}
+              >
+                <Bell className="w-8 h-8 stroke-[1.8]" />
               </div>
-              <div>
-                <p className="text-base font-bold text-slate-200">Bandeja al día</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs">
+              <div className="space-y-1">
+                <p
+                  className={`text-base font-black ${
+                    isEmergencyMode ? 'text-[#FDE047]' : 'text-[#0B1E3F] dark:text-white'
+                  }`}
+                >
+                  Bandeja al día
+                </p>
+                <p
+                  className={`text-xs max-w-xs leading-relaxed font-semibold ${
+                    isEmergencyMode ? 'text-slate-200' : 'text-slate-600 dark:text-slate-300'
+                  }`}
+                >
                   {activeFilter === 'ALL'
                     ? 'Aquí verás compromisos en tus publicaciones, confirmaciones de entrega, recomendaciones de oficios, juntas vecinales y alertas SOS.'
                     : 'No hay notificaciones en este filtro.'}
@@ -309,52 +385,52 @@ export function NotificationsDrawer({
               const VisualIcon = visuals.icon;
 
               return (
-                <div
+                <article
                   key={item.id}
-                  className={`relative rounded-2xl border p-3.5 transition-all ${
+                  className={`relative rounded-[22px] p-4 transition-all shadow-card-diffuse border ${
                     item.isRead
-                      ? 'bg-slate-900/50 border-slate-800 text-slate-300'
-                      : `bg-[#141C2E] border-2 shadow-md ${visuals.borderUnread}`
+                      ? 'bg-white/70 dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-800 text-slate-600 dark:text-slate-300'
+                      : `bg-white dark:bg-slate-900 border-2 ${visuals.cardBorder} text-[#0B1E3F] dark:text-white`
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${visuals.bgIcon}`}
+                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${visuals.bgIcon}`}
                     >
                       <VisualIcon className="w-5 h-5" />
                     </div>
 
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between gap-1">
                         <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded-full ${visuals.badgeColor}`}
+                          className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${visuals.badgeColor}`}
                         >
                           {visuals.badgeText}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-mono">
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold">
                           {formatRelativeTime(item.timestamp)}
                         </span>
                       </div>
 
                       <h3
                         className={`text-sm font-black leading-snug tracking-tight ${
-                          item.isRead ? 'text-slate-200' : 'text-white'
+                          item.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-[#0B1E3F] dark:text-white'
                         }`}
                       >
                         {item.title}
                       </h3>
 
-                      <p className="text-xs text-slate-300 leading-relaxed break-words">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed break-words font-medium">
                         {item.description}
                       </p>
 
                       {/* Metadatos adicionales de ubicación o detalles */}
                       {item.metadata?.meetingPlace && (
-                        <p className="text-[11px] text-indigo-300 font-bold flex items-center gap-1 pt-0.5">
+                        <p className="text-[11px] text-[#0F2A56] dark:text-sky-300 font-bold flex items-center gap-1 pt-0.5">
                           <MapPin className="w-3.5 h-3.5 shrink-0" />
                           <span>Lugar: {item.metadata.meetingPlace}</span>
                           {item.metadata.scheduledTime && (
-                            <span className="text-slate-400">· {item.metadata.scheduledTime}</span>
+                            <span className="text-slate-400 font-normal">· {item.metadata.scheduledTime}</span>
                           )}
                         </p>
                       )}
@@ -365,14 +441,14 @@ export function NotificationsDrawer({
                           <button
                             type="button"
                             onClick={() => handleActionClick(item)}
-                            className={`min-h-[48px] px-3.5 py-1.5 rounded-xl font-black text-xs inline-flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer ${
+                            className={`min-h-[48px] px-4 py-1.5 rounded-full font-black text-xs inline-flex items-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer ${
                               item.type === 'SOLIDARITY_DELIVERED'
                                 ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
                                 : item.type === 'SOS_ALERT'
-                                ? 'bg-red-600 hover:bg-red-500 text-white'
+                                ? 'bg-red-600 hover:bg-red-700 text-white'
                                 : item.type === 'MEETING_CONVOKED'
-                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                                : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-600'
+                                ? 'bg-[#0F2A56] hover:bg-[#0B1E3F] text-white'
+                                : 'bg-[#0F2A56] hover:bg-[#0B1E3F] text-white'
                             }`}
                           >
                             <span>
@@ -395,7 +471,7 @@ export function NotificationsDrawer({
                               onClick={() => markAsRead(item.id)}
                               aria-label="Marcar como leída"
                               title="Marcar como leída"
-                              className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-xl text-slate-400 hover:text-emerald-400 text-xs font-bold inline-flex items-center justify-center transition-colors"
+                              className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-full text-slate-400 hover:text-emerald-600 text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer"
                             >
                               <CheckCheck className="w-4 h-4" />
                             </button>
@@ -405,7 +481,7 @@ export function NotificationsDrawer({
                             onClick={() => deleteNotification(item.id)}
                             aria-label="Eliminar notificación"
                             title="Eliminar notificación"
-                            className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-xl text-slate-500 hover:text-red-400 text-xs font-bold inline-flex items-center justify-center transition-colors"
+                            className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-full text-slate-400 hover:text-red-500 text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -413,7 +489,7 @@ export function NotificationsDrawer({
                       </div>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })
           )}

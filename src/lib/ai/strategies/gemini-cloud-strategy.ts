@@ -44,7 +44,7 @@ export class GeminiCloudStrategy implements IIntentParserStrategy {
       options.apiKey ??
       process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
       process.env.GEMINI_API_KEY;
-    this.modelName = options.modelName ?? 'gemini-2.5-flash';
+    this.modelName = options.modelName ?? 'gemini-flash-lite-latest';
     this.timeoutMs = options.timeoutMs ?? 2500;
     this.fetchImpl = options.fetchImpl;
   }

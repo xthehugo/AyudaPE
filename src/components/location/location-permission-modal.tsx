@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Navigation, ShieldCheck, X } from 'lucide-react';
 import { useLocation, SUCRE_HUANCAYO_COORDS } from '@/context/location-context';
-import { toast } from 'sonner';
 
 const STORAGE_KEY_LOCATION_PROMPTED = 'redvecina_location_prompted_v1';
 
@@ -29,48 +28,67 @@ export function LocationPermissionModal(): React.ReactElement | null {
     }
   }, []);
 
+  const notifyLocationClosed = () => {
+    setIsOpen(false);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY_LOCATION_PROMPTED, 'true');
+        window.dispatchEvent(new CustomEvent('ayudape_location_prompt_closed'));
+      } catch {}
+    }
+  };
+
   const handleAllowGps = () => {
     setIsLocating(true);
+    let resolved = false;
+
+    // Timer de seguridad: máximo 3 segundos esperando respuesta de GPS
+    const safetyTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        setUserCoords({
+          lat: SUCRE_HUANCAYO_COORDS.lat,
+          lng: SUCRE_HUANCAYO_COORDS.lng,
+        });
+        setIsLocating(false);
+        notifyLocationClosed();
+      }
+    }, 3200);
+
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(safetyTimer);
           setUserCoords({
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
           });
           setIsLocating(false);
-          setIsOpen(false);
-          try {
-            localStorage.setItem(STORAGE_KEY_LOCATION_PROMPTED, 'true');
-          } catch {}
-          toast.success('¡Ubicación GPS detectada!', {
-            description: 'AyudaPE ha calibrado los oficios y favores más cercanos a ti.',
-          });
+          notifyLocationClosed();
         },
         () => {
-          // Fallback exacto a la ubicación de Huancayo Jr. Sucre
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(safetyTimer);
           setUserCoords({
             lat: SUCRE_HUANCAYO_COORDS.lat,
             lng: SUCRE_HUANCAYO_COORDS.lng,
           });
           setIsLocating(false);
-          setIsOpen(false);
-          try {
-            localStorage.setItem(STORAGE_KEY_LOCATION_PROMPTED, 'true');
-          } catch {}
-          toast.info('Ubicación fijada en Huancayo · Jr. Sucre', {
-            description: 'Mostrando oficios y muro solidario de tu cuadra en Chilca.',
-          });
+          notifyLocationClosed();
         },
-        { timeout: 7000, enableHighAccuracy: true }
+        { timeout: 3000, enableHighAccuracy: false, maximumAge: 60000 }
       );
     } else {
+      clearTimeout(safetyTimer);
       setUserCoords({
         lat: SUCRE_HUANCAYO_COORDS.lat,
         lng: SUCRE_HUANCAYO_COORDS.lng,
       });
       setIsLocating(false);
-      setIsOpen(false);
+      notifyLocationClosed();
     }
   };
 
@@ -79,13 +97,7 @@ export function LocationPermissionModal(): React.ReactElement | null {
       lat: SUCRE_HUANCAYO_COORDS.lat,
       lng: SUCRE_HUANCAYO_COORDS.lng,
     });
-    setIsOpen(false);
-    try {
-      localStorage.setItem(STORAGE_KEY_LOCATION_PROMPTED, 'true');
-    } catch {}
-    toast.success('Ubicación fijada en Jr. Sucre 656', {
-      description: 'Oficios y productos locales calibrados para tu barrio en Huancayo.',
-    });
+    notifyLocationClosed();
   };
 
   if (!isOpen) return null;
@@ -130,12 +142,12 @@ export function LocationPermissionModal(): React.ReactElement | null {
           <span>Cumplimiento Ley N° 29733: Tus datos de GPS son locales y nunca se comparten sin autorización.</span>
         </div>
 
-        <div className="space-y-2 pt-1">
+        <div className="pt-1">
           <button
             type="button"
             onClick={handleAllowGps}
             disabled={isLocating}
-            className="w-full min-h-[48px] h-12 px-4 rounded-xl bg-[#014069] hover:bg-[#012d4a] text-white font-black text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+            className="w-full min-h-[48px] h-12 px-4 rounded-xl bg-[#014069] hover:bg-[#012d4a] text-white font-black text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             <Navigation className="w-4 h-4 text-sky-300" strokeWidth={2.2} />
             <span>{isLocating ? 'Detectando GPS...' : 'Permitir Ubicación GPS'}</span>

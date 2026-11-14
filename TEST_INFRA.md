@@ -1,50 +1,43 @@
-# E2E Test Infra: RedVecina
+# E2E Test Infra: AyudaPE Rescate USAR, Malla Vecinal y Modo Ultra-Ahorro
 
 ## Test Philosophy
-- Opaque-box, requirement-driven. Derivado estrictamente de `ORIGINAL_REQUEST.md` y de los casos del video de Mario Cortijo.
-- Metodología: Category-Partition + BVA (Boundary Value Analysis) + Pairwise Combinatorial Testing + Real-World Workload Testing (Tiers 1-4).
-- Resiliencia y compatibilidad: Los tests deben ejecutarse mediante Vitest (`npm test`) en entorno Node.js sin fallar por APIs faltantes de navegador (`typeof window !== 'undefined'`).
+- Opaque-box, requirement-driven. Derivado de `ORIGINAL_REQUEST.md`.
+- Metodología: Category-Partition + Boundary Value Analysis + Pairwise Combinatorial + Real-World Workload Testing.
+- Rigor de Accesibilidad: AST audit automatizado de altura táctil WCAG AAA (`min-h-[48px]`).
 
-## Feature Inventory & Metas de Cobertura
-
-| # | Feature | Requerimiento | Tier 1 (Funcional) | Tier 2 (BVA/Límites) | Tier 3 (Interacciones) |
-|---|---------|---------------|:------------------:|:--------------------:|:----------------------:|
-| 1 | Selector de Ubicación (Huancayo por defecto) | R1 | 5 tests | 5 tests | ✓ |
-| 2 | Semillas Muro Solidario (Muletas y Carpooling) | R1 | 5 tests | 5 tests | ✓ |
-| 3 | Semillas Catálogo (Lasañas, Matemáticas, Oficios) | R1 | 5 tests | 5 tests | ✓ |
-| 4 | Semillas Emergencias (Oxígeno, Acopio, Brigadas) | R1 | 5 tests | 5 tests | ✓ |
-| 5 | Mapa Interactivo OpenStreetMap Resiliente | R2 | 5 tests | 5 tests | ✓ |
-| 6 | Bottom Sheet Deslizable (Vaul Drawer) | R2 | 5 tests | 5 tests | ✓ |
-| 7 | Marcadores Categorizados y Trazado de Ruta | R2 | 5 tests | 5 tests | ✓ |
-| 8 | Controles Táctiles y Accesibilidad (Botones >= 48px) | R2 | 5 tests | 5 tests | ✓ |
-| 9 | Selector de Radio Hiperlocal (200m, 500m, 1km) | R3 | 5 tests | 5 tests | ✓ |
-| 10 | Sincronización Inmediata Mapa y Catálogo | R3 | 5 tests | 5 tests | ✓ |
-| 11 | Cronómetro Regresivo Jurado (180s con Controles) | R4 | 5 tests | 5 tests | ✓ |
-| 12 | Simulación 1: Modo Avión / Sin Red en 1 Clic | R4 | 5 tests | 5 tests | ✓ |
-| 13 | Simulación 2: SOS Voz con Difuminado a 50m | R4 | 5 tests | 5 tests | ✓ |
-| 14 | Simulación 3: Desbloqueo Bóveda PII + Log Local | R4 | 5 tests | 5 tests | ✓ |
+## Feature Inventory
+| # | Feature | Source | Tier 1 | Tier 2 | Tier 3 | Tier 4 |
+|---|---------|--------|:------:|:------:|:------:|:------:|
+| F1 | Baliza Morse Acústica USAR | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ | ✓ |
+| F2 | Baliza Háptica Sincronizada | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ | ✓ |
+| F3 | Controles Activar / Silenciar Baliza | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ | ✓ |
+| F4 | Insignia Mula de Datos Vecinal | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
+| F5 | Sincronización Realtime Multi-Dispositivo | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
+| F6 | Disparador Diálogo SOS en Barra Superior | ORIGINAL_REQUEST §R1-R2 | 5 | 5 | ✓ | ✓ |
+| F7 | Modo Pantalla Negra 72h OLED | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| F8 | Despertar por Doble Toque en Overlay | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| F9 | Persistencia de Baliza en Segundo Plano | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
 
 ## Test Architecture
-- Test Runner: `npm test` (`vitest run`).
-- Directorio de pruebas E2E: `tests/e2e/`.
-- Archivos de prueba:
-  - `tests/e2e/r1-location-seeds.test.ts`
-  - `tests/e2e/r2-uber-map.test.ts`
-  - `tests/e2e/r3-hyperlocal-radius.test.ts`
-  - `tests/e2e/r4-pitch-jury-panel.test.ts`
-  - `tests/e2e/r5-real-world-scenarios.test.ts` (Tier 4)
+- Test Runner: `vitest run` (Vitest 3.x en entorno Node con mockups de Web Audio, navigator.vibrate y DOM SSR via `react-dom/server`).
+- E2E Test Files:
+  - `tests/morse-beacon.test.ts` (Unit & timing & AudioContext simulation)
+  - `tests/rescue-usar-ultra-ahorro.test.tsx` (Component, DOM, WCAG AAA, double-tap, and state persistence)
+  - `tests/sos-mesh-sync.test.ts` (Mesh & Realtime synchronization dispatch validation)
+  - `tests/m5-challenger-deep-stress.test.ts` (AST WCAG AAA `min-h-[48px]` across all components)
+- Output esperado: 100% de suites en verde con 0 fallos (`Exit code 0`).
 
 ## Real-World Application Scenarios (Tier 4)
 | # | Scenario | Features Exercised | Complexity |
 |---|----------|--------------------|------------|
-| 1 | Sismo en Falla Huaytapallana: Conmutación a Huancayo, corte de luz/red, navegación offline de balones de oxígeno y brigadas vecinales | F1, F4, F5, F12 | Alta |
-| 2 | Emergencia SOS Adulto Mayor electrodependiente en El Tambo con solicitud de oxígeno, difuminado a 50m y rescate auditado por Brigadista | F4, F6, F7, F13, F14 | Alta |
-| 3 | Rutina vecinal matutina: Solicitud de muletas ortopédicas sin costo, coordinación de carpooling escolar y pedido de lasañas de la vecina | F1, F2, F3, F9, F10 | Media |
-| 4 | Búsqueda por proximidad estricta en Mi Cuadra (200m) filtrando gasfitería ante tubería rota por heladas en El Tambo | F1, F3, F6, F9, F10 | Media |
-| 5 | Pitch en vivo de 180 segundos ante el jurado ejecutando las 3 simulaciones secuencialmente sin recargar la app | F11, F12, F13, F14 | Alta |
+| 1 | Rescate bajo escombros: Emisión SOS -> Activación Baliza -> Activación Pantalla Negra 72h -> Despertar con doble toque -> Silenciado de baliza | F1, F2, F3, F7, F8, F9 | High |
+| 2 | Retransmisión vecinal: Celular emite SOS -> Retransmisión Store-and-Forward + WebSocket -> Laptop vecina recibe alerta y muestra banner | F4, F5, F6 | High |
+| 3 | Resistencia a doble toque accidental: Toques espaciados (>500ms) no despiertan; doble toque rápido (<400ms) despierta al instante | F8 | Medium |
+| 4 | Tolerancia en dispositivos sin motor háptico (iOS Safari / PC): Audio funciona ininterrumpido sin lanzar excepción de `navigator.vibrate` | F1, F2, F3 | Medium |
+| 5 | Interrupción por usuario a salvo: Pulsar "Ya estoy a salvo" apaga instantáneamente audio y vibración, cerrando el diálogo limpiamente | F1, F2, F3 | Medium |
 
 ## Coverage Thresholds
-- Tier 1: ≥5 por feature (14 features × 5 = 70 tests).
-- Tier 2: ≥5 por feature (casos límite, distancias fuera de radio, radio nulo, búsqueda vacía, inputs inválidos).
-- Tier 3: Pruebas combinatorias entre features concurrentes.
-- Tier 4: ≥5 escenarios realistas de aplicación integral.
+- Tier 1: ≥ 5 casos por feature.
+- Tier 2: ≥ 5 límites y casos borde por feature (mockups nulos, duraciones, rebotes).
+- Tier 3: Cobertura de interacción combinada (Baliza + OLED + Malla).
+- Tier 4: ≥ 5 escenarios de aplicación realista.

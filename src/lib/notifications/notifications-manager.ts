@@ -75,6 +75,48 @@ export function triggerHapticFeedback(priority: NotificationPriority = 'NORMAL')
 }
 
 /**
+ * Despacha una notificación del sistema operativo compatible con móviles (Android PWA / Chrome)
+ * y navegadores de escritorio.
+ * En Chrome para Android, `new Notification(...)` arroja 'TypeError: Illegal constructor',
+ * por lo que se debe invocar a través de `ServiceWorkerRegistration.showNotification()`.
+ */
+export async function dispatchNativePushNotification(
+  title: string,
+  options: NotificationOptions & { vibrate?: number[] } = {}
+): Promise<void> {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  // 1. Intentar por ServiceWorker (Requerido en Chrome Android y PWAs móviles)
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && typeof reg.showNotification === 'function') {
+        await reg.showNotification(title, {
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          vibrate: [300, 100, 300, 100, 300],
+          ...options,
+        });
+        return;
+      }
+    }
+  } catch (swErr) {
+    console.warn('[Notification SW Error]', swErr);
+  }
+
+  // 2. Fallback estándar para navegadores de escritorio que no tengan Service Worker activo
+  try {
+    new Notification(title, {
+      icon: '/icon.svg',
+      ...options,
+    });
+  } catch (nErr) {
+    console.warn('[Notification Constructor Fallback Error]', nErr);
+  }
+}
+
+/**
  * Lee las notificaciones guardadas en localStorage o memoria.
  */
 export function getNotifications(): INotificationItem[] {
@@ -166,6 +208,14 @@ export function addNotification(
 
   if (!params.preventVibrate) {
     triggerHapticFeedback(newItem.priority);
+  }
+
+  // Notificación nativa en SO / móvil si es de prioridad alta o SOS
+  if (newItem.priority === 'CRITICAL' || newItem.type === 'SOS_ALERT') {
+    void dispatchNativePushNotification(newItem.title, {
+      body: newItem.description,
+      tag: 'redvecina-sos-push',
+    });
   }
 
   return newItem;

@@ -235,6 +235,52 @@ html.emergency-mode .text-\[\#5B6068\] {
   color: var(--text-secondary) !important;
 }
 
+/* Excepción y regla estricta de contraste para tarjetas de Muro Solidario y Anuncios de Emergencia (FavorCard) */
+.favor-card-article,
+html.emergency-mode .favor-card-article,
+html.dark .favor-card-article {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+.favor-card-article.is-complete,
+html.emergency-mode .favor-card-article.is-complete,
+html.dark .favor-card-article.is-complete {
+  background-color: #F2F9F5 !important;
+  border-color: rgba(21, 121, 90, 0.4) !important;
+}
+
+.favor-card-article.is-emergency-active,
+html.emergency-mode .favor-card-article.is-emergency-active,
+html.dark .favor-card-article.is-emergency-active {
+  background-color: #FFFDFD !important;
+  border: 2px solid #EF4444 !important;
+}
+
+html.emergency-mode .favor-card-article .favor-card-title,
+html.dark .favor-card-article .favor-card-title,
+.favor-card-article .favor-card-title {
+  color: #0F172A !important;
+}
+
+html.emergency-mode .favor-card-article.is-emergency-active .favor-card-title,
+html.dark .favor-card-article.is-emergency-active .favor-card-title,
+.favor-card-article.is-emergency-active .favor-card-title {
+  color: #7F1D1D !important;
+}
+
+html.emergency-mode .favor-card-article .favor-card-desc,
+html.dark .favor-card-article .favor-card-desc,
+.favor-card-article .favor-card-desc {
+  color: #1E293B !important;
+}
+
+html.emergency-mode .favor-card-article .favor-card-location,
+html.dark .favor-card-article .favor-card-location,
+.favor-card-article .favor-card-location {
+  color: #334155 !important;
+}
+
 html.dark .border-slate-100,
 html.dark .border-slate-200,
 html.dark .border-slate-300,
@@ -377,4 +423,133 @@ input::placeholder,
 textarea::placeholder {
   color: var(--text-muted);
   opacity: 0.9;
+}
+
+/* Notificaciones Flotantes Tipo Nube (Centradas perfectamente en móvil y laptop sin desbordes) */
+[data-sonner-toaster] {
+  position: fixed !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: none !important;
+}
+
+[data-sonner-toaster][data-y-position='bottom'] {
+  bottom: 84px !important;
+}
+
+[data-sonner-toaster][data-x-position='center'] {
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast] {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  margin: 0 auto 6px auto !important;
+  pointer-events: auto !important;
+  border-radius: 9999px !important;
+  padding: 10px 18px !important;
+  min-height: 44px !important;
+  max-width: min(90vw, 420px) !important;
+  width: auto !important;
+  box-shadow: 0 10px 28px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #0F2A56 !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  font-family: inherit !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-align: center !important;
+}
+
+html.dark [data-sonner-toaster] [data-sonner-toast] {
+  background: rgba(15, 23, 42, 0.92) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Colores tenues específicos según tipo de aviso */
+[data-sonner-toaster] [data-sonner-toast][data-type='success'] {
+  background: rgba(240, 253, 244, 0.95) !important;
+  border-color: rgba(134, 239, 172, 0.7) !important;
+  color: #166534 !important;
+}
+html.dark [data-sonner-toaster] [data-sonner-toast][data-type='success'] {
+  background: rgba(20, 45, 30, 0.95) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #86EFAC !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type='error'] {
+  background: rgba(254, 242, 242, 0.95) !important;
+  border-color: rgba(252, 165, 165, 0.7) !important;
+  color: #991B1B !important;
+}
+html.dark [data-sonner-toaster] [data-sonner-toast][data-type='error'] {
+  background: rgba(69, 10, 10, 0.95) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #FCA5A5 !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type='warning'] {
+  background: rgba(255, 251, 235, 0.95) !important;
+  border-color: rgba(253, 230, 138, 0.8) !important;
+  color: #92400E !important;
+}
+html.dark [data-sonner-toaster] [data-sonner-toast][data-type='warning'] {
+  background: rgba(45, 30, 10, 0.95) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #FDE68A !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type='info'] {
+  background: rgba(240, 249, 255, 0.95) !important;
+  border-color: rgba(186, 230, 253, 0.8) !important;
+  color: #075985 !important;
+}
+html.dark [data-sonner-toaster] [data-sonner-toast][data-type='info'] {
+  background: rgba(12, 35, 60, 0.95) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  color: #BAE6FD !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  letter-spacing: -0.01em !important;
+}
+
+[data-sonner-toast] [data-description] {
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  opacity: 0.85 !important;
 }

@@ -35,8 +35,8 @@ describe('MOD-12: Vistas de Catálogo de Proximidad, Muro Solidario, Coordinaci�
       listing: targetListing,
       skillTag: 'Excelente gasfitero de la cuadra',
       comment: 'Reparó la fuga de nuestra cisterna en 20 minutos.',
-      endorserLat: -12.0752,
-      endorserLng: -77.0484,
+      endorserLat: targetListing.latitude,
+      endorserLng: targetListing.longitude,
       db: testDb,
     });
     const elapsedMs = performance.now() - start;

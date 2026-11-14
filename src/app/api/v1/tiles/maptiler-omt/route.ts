@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 const DEFAULT_OSM_MAPTILER_KEY =
   process.env.MAPTILER_API_KEY ??
   process.env.NEXT_PUBLIC_MAPTILER_KEY ??
-  'get_your_own_key_VowEvALRr1YluFC6auJW';
+  '';
 
 // Transparent 1x1 PNG fallback in case of offline/network failure
 const TRANSPARENT_PNG_BASE64 =
@@ -29,6 +29,18 @@ export async function GET(request: Request): Promise<Response> {
     y < 0
   ) {
     return NextResponse.json({ error: 'Coordenadas de tesela inválidas' }, { status: 400 });
+  }
+
+  const fallbackBuffer = Buffer.from(TRANSPARENT_PNG_BASE64, 'base64');
+
+  if (!DEFAULT_OSM_MAPTILER_KEY) {
+    return new Response(fallbackBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=60',
+      },
+    });
   }
 
   const upstreamUrl = `https://api.maptiler.com/maps/openstreetmap/256/${z}/${x}/${y}.png?key=${encodeURIComponent(
@@ -61,7 +73,6 @@ export async function GET(request: Request): Promise<Response> {
     // Continuar al fallback si falla la red
   }
 
-  const fallbackBuffer = Buffer.from(TRANSPARENT_PNG_BASE64, 'base64');
   return new Response(fallbackBuffer, {
     status: 200,
     headers: {

@@ -73,8 +73,7 @@ export function compareNames(enteredName: string, providerName: string): boolean
   return matchCount >= Math.min(2, enteredTokens.length);
 }
 
-const DEFAULT_APISPERU_TOKEN =
-  'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Imh1Z29nZzEyMzQ1Njc4OUBnbWFpbC5jb20iLCJqdGkiOiJjN2NiZWViZDBlZGM2NzY1In0.Ibyv1E-2OFfRa8SeK5x9IzNoEKjcrRfzwo64_MEK1iQ';
+const DEFAULT_APISPERU_TOKEN = 'mock-token';
 
 /**
  * Adaptador configurable de proveedores (dniruc.apisperu.com RENIEC / mock en tests)

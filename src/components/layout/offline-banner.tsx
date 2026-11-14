@@ -36,8 +36,13 @@ export function OfflineBanner({
   const [syncState, setSyncState] = useState<'IDLE' | 'SYNCING' | 'DONE' | 'ERROR'>('IDLE');
   const [isDismissed, setIsDismissed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   // Control para evitar doble disparo de auto-sync al montar
   const autoSyncFired = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Si hay nuevos pendientes, se reactiva el banner
   useEffect(() => {
@@ -104,6 +109,10 @@ export function OfflineBanner({
       autoSyncFired.current = false;
     }
   }, [effectiveOnline, effectivePending, syncState, triggerSync]);
+
+  if (!mounted && overrideOnline === undefined) {
+    return null;
+  }
 
   // Modo Sin Red / Offline
   if (!effectiveOnline) {

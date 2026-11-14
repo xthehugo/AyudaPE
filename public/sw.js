@@ -1,4 +1,4 @@
-const CACHE_NAME = 'redvecina-shell-v1';
+const CACHE_NAME = 'redvecina-shell-v2';
 const TILES_CACHE_NAME = 'redvecina-tiles-v1';
 const STATIC_ASSETS = ['/', '/manifest.json'];
 
@@ -81,6 +81,42 @@ self.addEventListener('fetch', (event) => {
           headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
       })
+  );
+});
+
+// Manejo de interacción de notificaciones en móvil y escritorio
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
+});
+
+// Soporte de evento push de fondo
+self.addEventListener('push', (event) => {
+  let payload = { title: '🚨 Emergencia SOS en tu barrio', body: 'Alerta vecinal activa en tu sector.' };
+  try {
+    if (event.data) {
+      payload = event.data.json();
+    }
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      vibrate: [300, 100, 300, 100, 300],
+      tag: 'redvecina-sos-push',
+    })
   );
 });
 
